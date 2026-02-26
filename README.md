@@ -44,7 +44,7 @@ It sits at the intersection of **product management domain expertise** and **AI 
 ## Getting Started
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/prioritize.git
+git clone https://github.com/kristenmartino/prioritize.git
 cd prioritize
 npm install
 npm run dev
@@ -73,7 +73,7 @@ Without the API key, the app runs in demo mode with locally-generated analysis.
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/prioritize&env=ANTHROPIC_API_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/kristenmartino/prioritize&env=ANTHROPIC_API_KEY)
 
 Add `ANTHROPIC_API_KEY` as an environment variable in Vercel's dashboard.
 
@@ -83,5 +83,5 @@ Add `ANTHROPIC_API_KEY` as an environment variable in Vercel's dashboard.
 
 This project was built as part of a portfolio demonstrating PM + AI capabilities. The full PRD — including competitive analysis, requirements with acceptance criteria, technical architecture, risk mitigations, and launch plan — is available in [`docs/Prioritize_PRD.pdf`](./docs/Prioritize_PRD.pdf).
 
-**Built by [Kristen Martino](https://linkedin.com/in/YOUR_LINKEDIN)** · Senior Product Manager · MS Business Analytics & AI, UT Dallas
+**Built by [Kristen Martino](https://linkedin.com/in/kristenmartino)** · Product & AI Strategist · MS Business Analytics & AI, UT Dallas
 
