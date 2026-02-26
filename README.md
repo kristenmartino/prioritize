@@ -30,7 +30,7 @@ It sits at the intersection of **product management domain expertise** and **AI 
 |-------|--------|-----|
 | Frontend | React + Vite | Component model, fast builds |
 | Visualization | Canvas 2D API | No library dependency; native DPI scaling, custom hit-testing |
-| AI | Anthropic Claude Opus 4.5 | Structured JSON output; advanced reasoning for strategic analysis |
+| AI | Anthropic Claude Opus 4.6 | Structured JSON output; advanced reasoning for strategic analysis |
 | Deploy | Vercel | Zero-config with serverless API routes for the Claude proxy |
 
 ## Architecture Highlights
