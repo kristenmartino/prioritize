@@ -30,7 +30,7 @@ It sits at the intersection of **product management domain expertise** and **AI 
 |-------|--------|-----|
 | Frontend | React + Vite | Component model, fast builds |
 | Visualization | Canvas 2D API | No library dependency; native DPI scaling, custom hit-testing |
-| AI | Anthropic Claude API | Structured JSON output; cost-efficient single-shot analysis |
+| AI | Anthropic Claude Opus 4.5 | Structured JSON output; advanced reasoning for strategic analysis |
 | Deploy | Vercel | Zero-config with serverless API routes for the Claude proxy |
 
 ## Architecture Highlights
@@ -50,11 +50,24 @@ npm install
 npm run dev
 ```
 
-### Enable Live AI Analysis
+### Enable Live AI Analysis (Local Development)
 
 1. Copy `.env.example` to `.env.local`
 2. Add your Anthropic API key
-3. Deploy to Vercel (auto-detects the `/api` directory)
+3. Run both servers:
+   ```bash
+   # Terminal 1: Start the API server
+   npm run dev:api
+
+   # Terminal 2: Start the frontend
+   npm run dev
+   ```
+
+The Vite dev server proxies `/api` requests to the local API server.
+
+### Production Deployment
+
+Deploy to Vercel for automatic serverless function support (auto-detects the `/api` directory).
 
 Without the API key, the app runs in demo mode with locally-generated analysis.
 
