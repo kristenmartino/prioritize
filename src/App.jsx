@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { C, SAMPLES } from "./theme";
-import { exportCSV } from "./utils";
+import { exportCSV, parseCSV, mapCSVToFeatures } from "./utils";
 import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "./storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
@@ -9,6 +9,7 @@ import { Matrix } from "./components/Matrix";
 import { AIPanel } from "./components/AIPanel";
 import { Form } from "./components/Form";
 import { Card } from "./components/Card";
+import { ImportPanel } from "./components/ImportPanel";
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -23,6 +24,8 @@ export default function App() {
   const [sortMode, setSortMode] = useState("rice");
   const [manualOrder, setManualOrder] = useState([]);
   const [dragId, setDragId] = useState(null);
+  const [importData, setImportData] = useState(null);
+  const fileInputRef = useRef(null);
   const isMobile = useMedia("(max-width: 800px)");
   const { scored, sorted, maxScore } = useScored(features);
   const displayOrder = useMemo(() => {
@@ -91,6 +94,25 @@ export default function App() {
     [currentOrder[idx], currentOrder[targetIdx]] = [currentOrder[targetIdx], currentOrder[idx]];
     setManualOrder(currentOrder);
     setSortMode("manual");
+  };
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = mapCSVToFeatures(parseCSV(ev.target.result));
+      if (result && result.features.length > 0) {
+        setImportData(result);
+        setShowForm(false);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+  const confirmImport = () => {
+    if (!importData) return;
+    setFeatures(prev => [...prev, ...importData.features]);
+    setImportData(null);
   };
 
   const switchWorkspace = (wsId) => {
@@ -169,10 +191,13 @@ export default function App() {
           </div>
           <Pill color={C.accent} dimColor={C.accentDim} small>{features.length} FEATURES</Pill>
           <Pill color={C.blue} dimColor={C.blueDim} small>RICE</Pill>
+          <button data-no-print onClick={() => fileInputRef.current?.click()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.target.style.borderColor = C.blue; e.target.style.color = C.blue; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>↑ Import</button>
           <button data-no-print onClick={() => exportCSV(displayOrder, activeWs?.name)} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
             onMouseEnter={e => { e.target.style.borderColor = C.accent; e.target.style.color = C.accent; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>↓ CSV</button>
           <button data-no-print onClick={() => window.print()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
             onMouseEnter={e => { e.target.style.borderColor = C.purple; e.target.style.color = C.purple; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>⎙ PDF</button>
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
         </div>
       </header>
 
@@ -184,6 +209,7 @@ export default function App() {
             <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
           </div>
           {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} />}
+          {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
           {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
             <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>RICE Sort</button>
             <button onClick={() => { if (manualOrder.length === 0) setManualOrder(sorted.map(f => f.id)); setSortMode("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Manual Order</button>
