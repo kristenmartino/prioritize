@@ -21,3 +21,66 @@ export const exportCSV = (ordered, wsName) => {
   a.href = url; a.download = `${(wsName || "backlog").replace(/\s+/g, "-").toLowerCase()}.csv`; a.click();
   URL.revokeObjectURL(url);
 };
+
+// ─── CSV Import ─────────────────────────────────────────────────────
+export const parseCSV = (text) => {
+  const rows = [];
+  let row = []; let field = ""; let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(field.trim()); field = ""; }
+      else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+        if (ch === '\r') i++;
+        row.push(field.trim()); if (row.some(c => c)) rows.push(row); row = []; field = "";
+      } else field += ch;
+    }
+  }
+  row.push(field.trim()); if (row.some(c => c)) rows.push(row);
+  if (rows.length < 2) return null;
+  return { headers: rows[0], rows: rows.slice(1) };
+};
+
+const HEADER_MAP = {
+  name: ["name", "summary", "title", "feature", "issue"],
+  description: ["description", "desc", "details", "body", "notes"],
+  reach: ["reach"], impact: ["impact"], confidence: ["confidence"], effort: ["effort", "estimate"],
+};
+
+const findCol = (headers, aliases) => {
+  const lower = headers.map(h => h.toLowerCase().replace(/[^a-z]/g, ""));
+  for (const alias of aliases) { const idx = lower.indexOf(alias); if (idx !== -1) return idx; }
+  return -1;
+};
+
+export const mapCSVToFeatures = (parsed) => {
+  if (!parsed) return null;
+  const { headers, rows } = parsed;
+  const cols = {};
+  for (const [field, aliases] of Object.entries(HEADER_MAP)) cols[field] = findCol(headers, aliases);
+  if (cols.name === -1) return null;
+  const nameHeader = headers[cols.name];
+  const descHeader = cols.description !== -1 ? headers[cols.description] : null;
+  const hasRice = cols.reach !== -1 && cols.impact !== -1 && cols.confidence !== -1 && cols.effort !== -1;
+  const now = Date.now();
+  const features = rows.map((row, i) => {
+    const name = (row[cols.name] || "").trim();
+    if (!name) return null;
+    const riceVal = (idx) => { const v = parseInt(row[idx]); return (isNaN(v) || v < 1 || v > 100) ? 50 : v; };
+    return {
+      id: `imp-${now}-${i}`,
+      name,
+      description: cols.description !== -1 ? (row[cols.description] || "").trim() : "",
+      reach: hasRice ? riceVal(cols.reach) : 50,
+      impact: hasRice ? riceVal(cols.impact) : 50,
+      confidence: hasRice ? riceVal(cols.confidence) : 50,
+      effort: hasRice ? riceVal(cols.effort) : 50,
+    };
+  }).filter(Boolean);
+  return { features, nameHeader, descHeader, hasRice };
+};
