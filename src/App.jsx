@@ -83,6 +83,15 @@ export default function App() {
     setSortMode("manual");
     setDragId(null);
   };
+  const handleMove = (id, dir) => {
+    const currentOrder = manualOrder.length > 0 ? [...manualOrder] : sorted.map(f => f.id);
+    const idx = currentOrder.indexOf(id);
+    const targetIdx = idx + dir;
+    if (idx === -1 || targetIdx < 0 || targetIdx >= currentOrder.length) return;
+    [currentOrder[idx], currentOrder[targetIdx]] = [currentOrder[targetIdx], currentOrder[idx]];
+    setManualOrder(currentOrder);
+    setSortMode("manual");
+  };
 
   const switchWorkspace = (wsId) => {
     if (loaded && activeWsId) saveWsFeatures(activeWsId, features, manualOrder);
@@ -182,7 +191,7 @@ export default function App() {
           {displayOrder.length === 0 ? (
             <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No features yet. Add your first feature or load samples.</p></div>
           ) : displayOrder.map((f, i) => (
-            <Card key={f.id} feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual"} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} />
+            <Card key={f.id} feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
           ))}
         </div>
 
