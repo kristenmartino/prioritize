@@ -51,9 +51,10 @@ const loadWsIndex = () => { try { const d = localStorage.getItem(WS_INDEX_KEY); 
 const saveWsFeatures = (wsId, features) => { try { localStorage.setItem(`prioritize-ws-${wsId}`, JSON.stringify(features)); } catch {} };
 const loadWsFeatures = (wsId) => { try { const d = localStorage.getItem(`prioritize-ws-${wsId}`); return d ? JSON.parse(d) : null; } catch { return null; } };
 
+const csvSafe = (str) => { const s = (str || "").replace(/"/g, '""'); return /^[=+\-@\t\r]/.test(s) ? `"'${s}"` : `"${s}"`; };
 const exportCSV = (ordered, wsName) => {
   const header = "Rank,Name,Description,Reach,Impact,Confidence,Effort,RICE Score,Tier\n";
-  const rows = ordered.map((f, i) => `${i + 1},"${(f.name || "").replace(/"/g, '""')}","${(f.description || "").replace(/"/g, '""')}",${f.reach},${f.impact},${f.confidence},${f.effort},${f.score},"${getTier(f).label}"`).join("\n");
+  const rows = ordered.map((f, i) => `${i + 1},${csvSafe(f.name)},${csvSafe(f.description)},${f.reach},${f.impact},${f.confidence},${f.effort},${f.score},${csvSafe(getTier(f).label)}`).join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -430,6 +431,7 @@ export default function App() {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWsId, setActiveWsId] = useState(null);
   const [wsDropdownOpen, setWsDropdownOpen] = useState(false);
+  const wsDropdownRef = useRef(null);
   const [sortMode, setSortMode] = useState("rice");
   const [manualOrder, setManualOrder] = useState([]);
   const [dragId, setDragId] = useState(null);
@@ -462,10 +464,16 @@ export default function App() {
     setLoaded(true);
   }, []);
   useEffect(() => { if (loaded && activeWsId) saveWsFeatures(activeWsId, features); }, [features, loaded, activeWsId]);
+  useEffect(() => {
+    if (!wsDropdownOpen) return;
+    const handler = (e) => { if (wsDropdownRef.current && !wsDropdownRef.current.contains(e.target)) setWsDropdownOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [wsDropdownOpen]);
 
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
   const deleteFeature = (id) => { setFeatures(prev => prev.filter(f => f.id !== id)); setManualOrder(prev => prev.filter(x => x !== id)); if (selectedId === id) setSelectedId(null); };
-  const editFeature = (f) => { setEditingFeature(f); setShowForm(true); };
+  const editFeature = (f) => { const { score, ...raw } = f; setEditingFeature(raw); setShowForm(true); };
 
   const handleDragStart = (id) => setDragId(id);
   const handleDragOver = (e) => e.preventDefault();
@@ -491,6 +499,8 @@ export default function App() {
     setSelectedId(null);
     setShowForm(false);
     setEditingFeature(null);
+    setSortMode("rice");
+    setManualOrder([]);
     setWsDropdownOpen(false);
   };
   const addWorkspace = () => {
@@ -537,7 +547,7 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ position: "relative" }}>
+          <div ref={wsDropdownRef} style={{ position: "relative" }}>
             <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               {activeWs?.name || "Backlog"} <span style={{ fontSize: 8, color: C.textMuted }}>{wsDropdownOpen ? "▲" : "▼"}</span>
             </button>
@@ -568,7 +578,7 @@ export default function App() {
           <div data-no-print style={{ display: "flex", gap: 8 }}>
             <button onClick={() => { setEditingFeature(null); setShowForm(true); }} style={{ flex: 1, padding: "10px 16px", border: `1px dashed ${C.accent}50`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
               onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Feature</button>
-            <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
+            <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
           </div>
           {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} />}
           {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
