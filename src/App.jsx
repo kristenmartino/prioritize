@@ -145,7 +145,7 @@ export default function App() {
             <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               {activeWs?.name || "Backlog"} <span style={{ fontSize: 8, color: C.textMuted }}>{wsDropdownOpen ? "▲" : "▼"}</span>
             </button>
-            {wsDropdownOpen && <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, minWidth: 200, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 100, overflow: "hidden" }}>
+            {wsDropdownOpen && <div style={{ position: "absolute", top: "calc(100% + 4px)", ...(isMobile ? { left: 0 } : { right: 0 }), minWidth: 200, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 100, overflow: "hidden" }}>
               {workspaces.map(w => (
                 <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: w.id === activeWsId ? C.accentGlow : "transparent", cursor: "pointer" }}
                   onClick={() => { if (w.id !== activeWsId) switchWorkspace(w.id); else setWsDropdownOpen(false); }}>
