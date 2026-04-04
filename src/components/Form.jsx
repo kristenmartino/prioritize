@@ -1,13 +1,66 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { C } from "../theme";
 import { rice } from "../utils";
 import { Slider } from "./Slider";
 
-export const Form = ({ onAdd, onCancel, editFeature }) => {
+export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
   const [name, setName] = useState(editFeature?.name || ""); const [desc, setDesc] = useState(editFeature?.description || "");
   const [r, setR] = useState(editFeature?.reach ?? 50); const [i, setI] = useState(editFeature?.impact ?? 50); const [c, setC] = useState(editFeature?.confidence ?? 50); const [e, setE] = useState(editFeature?.effort ?? 50);
+  const [aiModes, setAiModes] = useState({ reach: false, impact: false, confidence: false, effort: false });
+  const [aiResults, setAiResults] = useState({});
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
   const preview = useMemo(() => rice({ reach: r, impact: i, confidence: c, effort: e }), [r, i, c, e]);
   const submit = () => { if (!name.trim()) return; onAdd({ id: editFeature?.id || `f-${Date.now()}`, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e }); };
+
+  const setters = { reach: setR, impact: setI, confidence: setC, effort: setE };
+
+  const requestAiScores = useCallback(async (dimensions) => {
+    if (!name.trim() || dimensions.length === 0) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch("/api/suggest-scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featureName: name.trim(), featureDescription: desc.trim(), productContext, dimensions }),
+      });
+      if (!res.ok) throw new Error("API failed");
+      const data = await res.json();
+      setAiResults(prev => ({ ...prev, ...data }));
+      for (const dim of dimensions) {
+        if (data[dim]?.score) setters[dim](data[dim].score);
+      }
+    } catch {
+      setAiError("AI scoring failed");
+      // Revert toggled dimensions
+      setAiModes(prev => {
+        const next = { ...prev };
+        for (const dim of dimensions) next[dim] = false;
+        return next;
+      });
+    }
+    setAiLoading(false);
+  }, [name, desc, productContext]);
+
+  const toggleDimension = useCallback((dim) => {
+    if (!name.trim()) return;
+    setAiModes(prev => {
+      const next = { ...prev, [dim]: !prev[dim] };
+      if (next[dim]) {
+        // Toggling to AI — request score
+        requestAiScores([dim]);
+      }
+      return next;
+    });
+  }, [name, requestAiScores]);
+
+  const suggestAll = useCallback(() => {
+    if (!name.trim()) return;
+    const dims = ["reach", "impact", "confidence", "effort"];
+    setAiModes({ reach: true, impact: true, confidence: true, effort: true });
+    requestAiScores(dims);
+  }, [name, requestAiScores]);
 
   const inputStyle = { padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, outline: "none", fontFamily: "'DM Sans', sans-serif" };
 
@@ -16,11 +69,26 @@ export const Form = ({ onAdd, onCancel, editFeature }) => {
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <input value={name} onChange={ev => setName(ev.target.value)} placeholder="Feature name" style={{ ...inputStyle, fontSize: 14 }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
         <textarea value={desc} onChange={ev => setDesc(ev.target.value)} placeholder="Brief description (optional)" rows={2} style={{ ...inputStyle, fontSize: 13, resize: "vertical" }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
+        <button onClick={suggestAll} disabled={!name.trim() || aiLoading}
+          style={{ padding: "7px 14px", border: `1px solid ${C.purple}30`, borderRadius: 6, background: C.purpleDim, color: C.purple, fontSize: 11, fontWeight: 600, cursor: !name.trim() || aiLoading ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono', monospace", opacity: !name.trim() || aiLoading ? 0.4 : 1, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          onMouseEnter={ev => { if (name.trim() && !aiLoading) ev.target.style.background = `${C.purple}20`; }}
+          onMouseLeave={ev => ev.target.style.background = C.purpleDim}>
+          {aiLoading ? "Suggesting..." : "✦ AI Suggest All Scores"}
+        </button>
+        {aiError && <p style={{ fontSize: 10, color: C.danger, margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>{aiError}</p>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Slider label="Reach" value={r} onChange={setR} color={C.accent} icon="📡" />
-          <Slider label="Impact" value={i} onChange={setI} color={C.blue} icon="💥" />
-          <Slider label="Confidence" value={c} onChange={setC} color={C.purple} icon="🎯" />
-          <Slider label="Effort" value={e} onChange={setE} color={C.warn} icon="⏱️" />
+          <Slider label="Reach" value={r} onChange={setR} color={C.accent} icon="📡"
+            aiMode={aiModes.reach} aiScore={aiResults.reach?.score} aiJustification={aiResults.reach?.justification}
+            aiLoading={aiLoading && aiModes.reach && !aiResults.reach} onToggleAi={() => toggleDimension("reach")} />
+          <Slider label="Impact" value={i} onChange={setI} color={C.blue} icon="💥"
+            aiMode={aiModes.impact} aiScore={aiResults.impact?.score} aiJustification={aiResults.impact?.justification}
+            aiLoading={aiLoading && aiModes.impact && !aiResults.impact} onToggleAi={() => toggleDimension("impact")} />
+          <Slider label="Confidence" value={c} onChange={setC} color={C.purple} icon="🎯"
+            aiMode={aiModes.confidence} aiScore={aiResults.confidence?.score} aiJustification={aiResults.confidence?.justification}
+            aiLoading={aiLoading && aiModes.confidence && !aiResults.confidence} onToggleAi={() => toggleDimension("confidence")} />
+          <Slider label="Effort" value={e} onChange={setE} color={C.warn} icon="⏱️"
+            aiMode={aiModes.effort} aiScore={aiResults.effort?.score} aiJustification={aiResults.effort?.justification}
+            aiLoading={aiLoading && aiModes.effort && !aiResults.effort} onToggleAi={() => toggleDimension("effort")} />
         </div>
         <div style={{ padding: 12, borderRadius: 8, background: C.accentGlow, border: `1px solid ${C.accent}20`, textAlign: "center" }}>
           <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>RICE SCORE</span>
