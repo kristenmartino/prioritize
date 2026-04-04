@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
 
@@ -10,46 +9,29 @@ export const metadata = {
   },
 };
 
-const clerkAppearance = {
-  variables: {
-    colorPrimary: "#4ADE80",
-    colorBackground: "#141820",
-    colorText: "#E8ECF2",
-    colorInputBackground: "#0C0F14",
-    colorInputText: "#E8ECF2",
-  },
-};
-
-function Providers({ children }) {
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) return children;
-  return <ClerkProvider appearance={clerkAppearance}>{children}</ClerkProvider>;
-}
-
 export default function RootLayout({ children }) {
   return (
-    <Providers>
-      <html lang="en">
-        <head>
-          <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
-            rel="stylesheet"
-          />
-        </head>
-        <body style={{ margin: 0, background: "#0C0F14" }}>
-          {children}
-          <Analytics />
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=G-RQS13QYCBG"
-            strategy="afterInteractive"
-          />
-          <Script id="ga" strategy="afterInteractive">{`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-RQS13QYCBG');
-          `}</Script>
-        </body>
-      </html>
-    </Providers>
+    <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body style={{ margin: 0, background: "#0C0F14" }}>
+        {children}
+        <Analytics />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-RQS13QYCBG"
+          strategy="afterInteractive"
+        />
+        <Script id="ga" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-RQS13QYCBG');
+        `}</Script>
+      </body>
+    </html>
   );
 }
