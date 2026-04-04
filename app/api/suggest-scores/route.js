@@ -5,7 +5,7 @@ export async function POST(request) {
   if (!apiKey) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
-    const { featureName, featureDescription, productContext, dimensions } = await request.json();
+    const { featureName, featureDescription, productContext, dimensions, feedbackContext } = await request.json();
     if (!featureName) return NextResponse.json({ error: "Feature name required" }, { status: 400 });
 
     const dims = dimensions && dimensions.length > 0 ? dimensions : ["reach", "impact", "confidence", "effort"];
@@ -19,9 +19,14 @@ Product Context:
 
 ` : "";
 
+    const calibrationBlock = feedbackContext?.scoreCalibration ? `
+${feedbackContext.scoreCalibration}
+
+` : "";
+
     const prompt = `You are a senior product strategist scoring a feature using the RICE framework. Each dimension is scored 1-100.
 
-${contextBlock}Feature to score:
+${contextBlock}${calibrationBlock}Feature to score:
 Name: "${featureName}"
 Description: "${featureDescription || "No description provided"}"
 

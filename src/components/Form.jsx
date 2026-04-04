@@ -3,7 +3,7 @@ import { C } from "../theme";
 import { rice } from "../utils";
 import { Slider } from "./Slider";
 
-export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
+export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEvent, onResolveScores, feedbackContext }) => {
   const [name, setName] = useState(editFeature?.name || ""); const [desc, setDesc] = useState(editFeature?.description || "");
   const [r, setR] = useState(editFeature?.reach ?? 50); const [i, setI] = useState(editFeature?.impact ?? 50); const [c, setC] = useState(editFeature?.confidence ?? 50); const [e, setE] = useState(editFeature?.effort ?? 50);
   const [aiModes, setAiModes] = useState({ reach: false, impact: false, confidence: false, effort: false });
@@ -11,7 +11,16 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
   const preview = useMemo(() => rice({ reach: r, impact: i, confidence: c, effort: e }), [r, i, c, e]);
-  const submit = () => { if (!name.trim()) return; onAdd({ id: editFeature?.id || `f-${Date.now()}`, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e }); };
+  const submit = () => {
+    if (!name.trim()) return;
+    const featureId = editFeature?.id || `f-${Date.now()}`;
+    onAdd({ id: featureId, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e });
+    // Resolve any pending AI score events with the final values
+    const hasAiScores = Object.values(aiModes).some(v => v);
+    if (hasAiScores && onResolveScores) {
+      onResolveScores(featureId, { reach: r, impact: i, confidence: c, effort: e });
+    }
+  };
 
   const setters = { reach: setR, impact: setI, confidence: setC, effort: setE };
 
@@ -23,7 +32,7 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
       const res = await fetch("/api/suggest-scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ featureName: name.trim(), featureDescription: desc.trim(), productContext, dimensions }),
+        body: JSON.stringify({ featureName: name.trim(), featureDescription: desc.trim(), productContext, dimensions, feedbackContext }),
       });
       if (!res.ok) throw new Error("API failed");
       const data = await res.json();
@@ -31,9 +40,16 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
       for (const dim of dimensions) {
         if (data[dim]?.score) setters[dim](data[dim].score);
       }
+      // Record score events for the feedback loop
+      if (onScoreEvent) {
+        const featureId = editFeature?.id || `f-pending-${Date.now()}`;
+        const events = dimensions
+          .filter(dim => data[dim]?.score)
+          .map(dim => ({ feature_id: featureId, feature_name: name.trim(), dimension: dim, ai_score: data[dim].score }));
+        if (events.length > 0) onScoreEvent(events);
+      }
     } catch {
       setAiError("AI scoring failed");
-      // Revert toggled dimensions
       setAiModes(prev => {
         const next = { ...prev };
         for (const dim of dimensions) next[dim] = false;
@@ -41,7 +57,7 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext }) => {
       });
     }
     setAiLoading(false);
-  }, [name, desc, productContext]);
+  }, [name, desc, productContext, feedbackContext, onScoreEvent, editFeature]);
 
   const toggleDimension = useCallback((dim) => {
     if (!name.trim()) return;
