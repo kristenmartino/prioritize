@@ -10,15 +10,15 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
   const [aiResults, setAiResults] = useState({});
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
+  const pendingFeatureId = useMemo(() => editFeature?.id || `f-${Date.now()}`, [editFeature]);
   const preview = useMemo(() => rice({ reach: r, impact: i, confidence: c, effort: e }), [r, i, c, e]);
   const submit = () => {
     if (!name.trim()) return;
-    const featureId = editFeature?.id || `f-${Date.now()}`;
-    onAdd({ id: featureId, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e });
+    onAdd({ id: pendingFeatureId, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e });
     // Resolve any pending AI score events with the final values
     const hasAiScores = Object.values(aiModes).some(v => v);
     if (hasAiScores && onResolveScores) {
-      onResolveScores(featureId, { reach: r, impact: i, confidence: c, effort: e });
+      onResolveScores(pendingFeatureId, { reach: r, impact: i, confidence: c, effort: e });
     }
   };
 
@@ -45,10 +45,9 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
       }
       // Record score events for the feedback loop
       if (onScoreEvent) {
-        const featureId = editFeature?.id || `f-pending-${Date.now()}`;
         const events = dimensions
           .filter(dim => data[dim]?.score)
-          .map(dim => ({ feature_id: featureId, feature_name: name.trim(), dimension: dim, ai_score: data[dim].score }));
+          .map(dim => ({ feature_id: pendingFeatureId, feature_name: name.trim(), dimension: dim, ai_score: data[dim].score }));
         if (events.length > 0) onScoreEvent(events);
       }
     } catch (err) {
@@ -60,7 +59,7 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
       });
     }
     setAiLoading(false);
-  }, [name, desc, productContext, feedbackContext, onScoreEvent, editFeature]);
+  }, [name, desc, productContext, feedbackContext, onScoreEvent, pendingFeatureId]);
 
   const toggleDimension = useCallback((dim) => {
     if (!name.trim()) return;
