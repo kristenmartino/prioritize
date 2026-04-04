@@ -32,9 +32,12 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
       const res = await fetch("/api/suggest-scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ featureName: name.trim(), featureDescription: desc.trim(), productContext, dimensions, feedbackContext }),
+        body: JSON.stringify({ featureName: name.trim(), featureDescription: desc.trim(), productContext, dimensions, feedbackContext: feedbackContext || undefined }),
       });
-      if (!res.ok) throw new Error("API failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `API returned ${res.status}`);
+      }
       const data = await res.json();
       setAiResults(prev => ({ ...prev, ...data }));
       for (const dim of dimensions) {
@@ -48,8 +51,8 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
           .map(dim => ({ feature_id: featureId, feature_name: name.trim(), dimension: dim, ai_score: data[dim].score }));
         if (events.length > 0) onScoreEvent(events);
       }
-    } catch {
-      setAiError("AI scoring failed");
+    } catch (err) {
+      setAiError(err.message || "AI scoring failed");
       setAiModes(prev => {
         const next = { ...prev };
         for (const dim of dimensions) next[dim] = false;
