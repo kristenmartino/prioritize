@@ -1,15 +1,19 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { C, SAMPLES } from "./theme";
 import { exportCSV, parseCSV, mapCSVToFeatures } from "./utils";
-import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "./storage";
+import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "../lib/local-storage";
+import * as cloud from "../lib/cloud-storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
+import { useAuth } from "./hooks/useAuth";
 import { Pill } from "./components/Pill";
 import { Matrix } from "./components/Matrix";
 import { AIPanel } from "./components/AIPanel";
 import { Form } from "./components/Form";
 import { Card } from "./components/Card";
 import { ImportPanel } from "./components/ImportPanel";
+import { AuthButton } from "./components/AuthButton";
+import { MigrationBanner } from "./components/MigrationBanner";
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -25,41 +29,94 @@ export default function App() {
   const [manualOrder, setManualOrder] = useState([]);
   const [dragId, setDragId] = useState(null);
   const [importData, setImportData] = useState(null);
+  const [showMigration, setShowMigration] = useState(false);
   const fileInputRef = useRef(null);
+  const saveTimer = useRef(null);
   const isMobile = useMedia("(max-width: 800px)");
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { scored, sorted, maxScore } = useScored(features);
   const displayOrder = useMemo(() => {
     if (sortMode === "rice" || manualOrder.length === 0) return sorted;
     return manualOrder.map(id => scored.find(f => f.id === id)).filter(Boolean).concat(scored.filter(f => !manualOrder.includes(f.id)));
   }, [sortMode, sorted, scored, manualOrder]);
 
+  // ── Init: load data from cloud or localStorage ──
   useEffect(() => {
-    let ws = loadWsIndex();
-    if (!ws || ws.length === 0) {
-      ws = [{ id: "default", name: "My Backlog" }];
-      const legacy = load();
-      if (legacy && legacy.length > 0) {
-        saveWsFeatures("default", legacy);
-        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    if (!authLoaded) return;
+    let cancelled = false;
+    async function init() {
+      if (isSignedIn) {
+        try {
+          let ws = await cloud.fetchWorkspaces();
+          if (ws.length === 0) {
+            const newWs = await cloud.createWorkspace("My Backlog");
+            ws = [newWs];
+          }
+          if (cancelled) return;
+          setWorkspaces(ws.map(w => ({ id: w.id, name: w.name })));
+          const activeId = ws[0].id;
+          setActiveWsId(activeId);
+          const data = await cloud.fetchFeatures(activeId);
+          if (cancelled) return;
+          setFeatures(data.features.length > 0 ? data.features : SAMPLES);
+          setManualOrder(data.manualOrder || []);
+          // Check if localStorage has data to migrate
+          const localWs = loadWsIndex();
+          if (localWs && localWs.length > 0) setShowMigration(true);
+        } catch (err) {
+          console.error("Cloud init failed, falling back to localStorage:", err);
+          initLocal();
+        }
       } else {
-        saveWsFeatures("default", SAMPLES);
+        initLocal();
       }
-      saveWsIndex(ws);
+      setLoaded(true);
     }
-    const activeId = getActiveWsId() || ws[0].id;
-    setWorkspaces(ws);
-    setActiveWsId(activeId);
-    const saved = loadWsFeatures(activeId);
-    if (saved) {
-      setFeatures(saved.features.length > 0 ? saved.features : SAMPLES);
-      setManualOrder(saved.manualOrder || []);
-    } else {
-      setFeatures(SAMPLES);
+    function initLocal() {
+      let ws = loadWsIndex();
+      if (!ws || ws.length === 0) {
+        ws = [{ id: "default", name: "My Backlog" }];
+        const legacy = load();
+        if (legacy && legacy.length > 0) {
+          saveWsFeatures("default", legacy);
+          try { localStorage.removeItem(STORAGE_KEY); } catch {}
+        } else {
+          saveWsFeatures("default", SAMPLES);
+        }
+        saveWsIndex(ws);
+      }
+      const activeId = getActiveWsId() || ws[0].id;
+      setWorkspaces(ws);
+      setActiveWsId(activeId);
+      const saved = loadWsFeatures(activeId);
+      if (saved) {
+        setFeatures(saved.features.length > 0 ? saved.features : SAMPLES);
+        setManualOrder(saved.manualOrder || []);
+      } else {
+        setFeatures(SAMPLES);
+      }
     }
-    setLoaded(true);
-  }, []);
+    init();
+    return () => { cancelled = true; };
+  }, [authLoaded, isSignedIn]);
 
-  useEffect(() => { if (loaded && activeWsId) saveWsFeatures(activeWsId, features, manualOrder); }, [features, manualOrder, loaded, activeWsId]);
+  // ── Auto-save ──
+  useEffect(() => {
+    if (!loaded || !activeWsId) return;
+    if (isSignedIn) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(async () => {
+        try {
+          await cloud.syncFeatures(activeWsId, features, manualOrder);
+        } catch (err) {
+          console.error("Cloud save failed:", err);
+        }
+      }, 1000);
+      return () => clearTimeout(saveTimer.current);
+    } else {
+      saveWsFeatures(activeWsId, features, manualOrder);
+    }
+  }, [features, manualOrder, loaded, activeWsId, isSignedIn]);
 
   useEffect(() => {
     if (!wsDropdownOpen) return;
@@ -69,7 +126,14 @@ export default function App() {
   }, [wsDropdownOpen]);
 
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
-  const deleteFeature = (id) => { setFeatures(prev => prev.filter(f => f.id !== id)); setManualOrder(prev => prev.filter(x => x !== id)); if (selectedId === id) setSelectedId(null); };
+  const deleteFeature = (id) => {
+    setFeatures(prev => prev.filter(f => f.id !== id));
+    setManualOrder(prev => prev.filter(x => x !== id));
+    if (selectedId === id) setSelectedId(null);
+    if (isSignedIn && activeWsId) {
+      cloud.deleteFeatureApi(activeWsId, id).catch(console.error);
+    }
+  };
   const editFeature = (f) => { const { score, ...raw } = f; setEditingFeature(raw); setShowForm(true); };
 
   const handleDragStart = (id) => setDragId(id);
@@ -115,50 +179,106 @@ export default function App() {
     setImportData(null);
   };
 
-  const switchWorkspace = (wsId) => {
-    if (loaded && activeWsId) saveWsFeatures(activeWsId, features, manualOrder);
-    const saved = loadWsFeatures(wsId);
-    setFeatures(saved?.features || []);
-    setManualOrder(saved?.manualOrder || []);
+  const switchWorkspace = useCallback(async (wsId) => {
+    if (isSignedIn) {
+      try {
+        const data = await cloud.fetchFeatures(wsId);
+        setFeatures(data.features || []);
+        setManualOrder(data.manualOrder || []);
+      } catch (err) {
+        console.error("Failed to load workspace:", err);
+        setFeatures([]);
+        setManualOrder([]);
+      }
+    } else {
+      if (loaded && activeWsId) saveWsFeatures(activeWsId, features, manualOrder);
+      const saved = loadWsFeatures(wsId);
+      setFeatures(saved?.features || []);
+      setManualOrder(saved?.manualOrder || []);
+    }
     setActiveWsId(wsId);
-    storeActiveWsId(wsId);
+    if (!isSignedIn) storeActiveWsId(wsId);
     setSelectedId(null);
     setShowForm(false);
     setEditingFeature(null);
     setSortMode("rice");
     setWsDropdownOpen(false);
-  };
-  const addWorkspace = () => {
+  }, [isSignedIn, loaded, activeWsId, features, manualOrder]);
+
+  const addWorkspace = async () => {
     const name = prompt("Workspace name:");
     if (!name?.trim()) return;
-    const ws = { id: `ws-${Date.now()}`, name: name.trim() };
-    const updated = [...workspaces, ws];
-    setWorkspaces(updated);
-    saveWsIndex(updated);
-    saveWsFeatures(ws.id, []);
-    switchWorkspace(ws.id);
+    if (isSignedIn) {
+      try {
+        const ws = await cloud.createWorkspace(name.trim());
+        const updated = [...workspaces, { id: ws.id, name: ws.name }];
+        setWorkspaces(updated);
+        switchWorkspace(ws.id);
+      } catch (err) {
+        console.error("Failed to create workspace:", err);
+      }
+    } else {
+      const ws = { id: `ws-${Date.now()}`, name: name.trim() };
+      const updated = [...workspaces, ws];
+      setWorkspaces(updated);
+      saveWsIndex(updated);
+      saveWsFeatures(ws.id, []);
+      switchWorkspace(ws.id);
+    }
   };
-  const deleteWorkspace = (wsId) => {
+  const deleteWorkspace = async (wsId) => {
     if (workspaces.length <= 1) return;
+    if (isSignedIn) {
+      try { await cloud.deleteWorkspaceApi(wsId); } catch (err) { console.error(err); return; }
+    } else {
+      removeWsFeatures(wsId);
+    }
     const updated = workspaces.filter(w => w.id !== wsId);
     setWorkspaces(updated);
-    saveWsIndex(updated);
-    removeWsFeatures(wsId);
+    if (!isSignedIn) saveWsIndex(updated);
     if (activeWsId === wsId) switchWorkspace(updated[0].id);
   };
-  const renameWorkspace = (wsId) => {
+  const renameWorkspace = async (wsId) => {
     const ws = workspaces.find(w => w.id === wsId);
     const name = prompt("New name:", ws?.name);
     if (!name?.trim()) return;
+    if (isSignedIn) {
+      try { await cloud.renameWorkspaceApi(wsId, name.trim()); } catch (err) { console.error(err); return; }
+    }
     const updated = workspaces.map(w => w.id === wsId ? { ...w, name: name.trim() } : w);
     setWorkspaces(updated);
-    saveWsIndex(updated);
+    if (!isSignedIn) saveWsIndex(updated);
   };
+
+  const handleMigration = async () => {
+    const localWs = loadWsIndex();
+    if (!localWs) return;
+    try {
+      for (const lw of localWs) {
+        const ws = await cloud.createWorkspace(lw.name);
+        const saved = loadWsFeatures(lw.id);
+        if (saved?.features) {
+          for (const f of saved.features) {
+            await cloud.upsertFeature(ws.id, f);
+          }
+        }
+      }
+      // Clear localStorage after successful migration
+      for (const lw of localWs) removeWsFeatures(lw.id);
+      try { localStorage.removeItem("prioritize-workspaces"); localStorage.removeItem("prioritize-active-workspace"); localStorage.removeItem(STORAGE_KEY); } catch {}
+      setShowMigration(false);
+      // Reload cloud data
+      const ws = await cloud.fetchWorkspaces();
+      setWorkspaces(ws.map(w => ({ id: w.id, name: w.name })));
+    } catch (err) {
+      console.error("Migration failed:", err);
+    }
+  };
+
   const activeWs = workspaces.find(w => w.id === activeWsId);
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <style>{`@media print { body { background: #fff !important; -webkit-print-color-adjust: exact; } [data-no-print] { display: none !important; } div { break-inside: avoid; } }`}</style>
 
       <header style={{ padding: "24px 28px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
@@ -198,8 +318,11 @@ export default function App() {
           <button data-no-print onClick={() => window.print()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
             onMouseEnter={e => { e.target.style.borderColor = C.purple; e.target.style.color = C.purple; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>⎙ PDF</button>
           <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
+          <div data-no-print style={{ marginLeft: "auto" }}><AuthButton /></div>
         </div>
       </header>
+
+      {showMigration && <MigrationBanner onConfirm={handleMigration} onDismiss={() => setShowMigration(false)} />}
 
       <div style={{ display: isMobile ? "flex" : "grid", flexDirection: isMobile ? "column" : undefined, gridTemplateColumns: isMobile ? undefined : "minmax(300px, 380px) 1fr", minHeight: "calc(100vh - 85px)" }}>
         <div style={{ borderRight: isMobile ? "none" : `1px solid ${C.border}`, borderBottom: isMobile ? `1px solid ${C.border}` : "none", padding: 20, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 85px)", display: "flex", flexDirection: "column", gap: 12 }}>

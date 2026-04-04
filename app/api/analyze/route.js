@@ -1,12 +1,13 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+import { NextResponse } from "next/server";
 
+export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "API key not configured" });
+  if (!apiKey) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
-    const { features } = req.body;
-    if (!features || features.length < 2) return res.status(400).json({ error: "Minimum 2 features required" });
+    const { features } = await request.json();
+    if (!features || features.length < 2)
+      return NextResponse.json({ error: "Minimum 2 features required" }, { status: 400 });
 
     const prompt = `You are a senior product strategist. Analyze this product backlog and provide actionable prioritization insights.
 
@@ -43,9 +44,9 @@ Respond ONLY with a JSON object (no markdown, no backticks). Structure:
     const clean = text.replace(/```json|```/g, "").trim();
     const analysis = JSON.parse(clean);
 
-    return res.status(200).json(analysis);
+    return NextResponse.json(analysis);
   } catch (err) {
     console.error("Analysis error:", err);
-    return res.status(500).json({ error: "Analysis failed" });
+    return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
 }
