@@ -19,7 +19,7 @@ const demoAnalysis = (scored) => {
   };
 };
 
-export const AIPanel = ({ scored }) => {
+export const AIPanel = ({ scored, productContext }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ export const AIPanel = ({ scored }) => {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ features: sorted }),
+        body: JSON.stringify({ features: sorted, productContext }),
       });
       if (res.ok) {
         const data = await res.json();

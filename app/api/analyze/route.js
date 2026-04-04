@@ -5,12 +5,23 @@ export async function POST(request) {
   if (!apiKey) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
-    const { features } = await request.json();
+    const { features, productContext } = await request.json();
     if (!features || features.length < 2)
       return NextResponse.json({ error: "Minimum 2 features required" }, { status: 400 });
 
-    const prompt = `You are a senior product strategist. Analyze this product backlog and provide actionable prioritization insights.
+    const truncate = (s, n = 500) => s && s.length > n ? s.slice(0, n) + "..." : s || "";
+    const contextBlock = productContext?.productSummary ? `
+Product Context:
+- Product: ${truncate(productContext.productSummary)}
+- Target Users: ${truncate(productContext.targetUsers)}
+- Strategic Priorities: ${truncate(productContext.strategicPriorities)}
 
+Ground your analysis in this product context. Relate recommendations to the stated strategic priorities and target users.
+
+` : "";
+
+    const prompt = `You are a senior product strategist. Analyze this product backlog and provide actionable prioritization insights.
+${contextBlock}
 Features (sorted by RICE score):
 ${features.map((f, i) => `${i + 1}. "${f.name}" — Reach:${f.reach} Impact:${f.impact} Confidence:${f.confidence} Effort:${f.effort} → RICE:${f.score}
    Description: ${f.description || "No description"}`).join("\n")}
