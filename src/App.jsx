@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { C, SAMPLES } from "./theme";
 import { exportCSV, parseCSV, mapCSVToFeatures } from "./utils";
-import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "../lib/local-storage";
+import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, saveWsContext, loadWsContext, removeWsContext, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "../lib/local-storage";
 import * as cloud from "../lib/cloud-storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
@@ -14,6 +14,7 @@ import { Card } from "./components/Card";
 import { ImportPanel } from "./components/ImportPanel";
 import { AuthButton } from "./components/AuthButton";
 import { MigrationBanner } from "./components/MigrationBanner";
+import { ProductContext } from "./components/ProductContext";
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -30,8 +31,10 @@ export default function App() {
   const [dragId, setDragId] = useState(null);
   const [importData, setImportData] = useState(null);
   const [showMigration, setShowMigration] = useState(false);
+  const [productContext, setProductContext] = useState({ productSummary: "", targetUsers: "", strategicPriorities: "" });
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
+  const ctxSaveTimer = useRef(null);
   const isMobile = useMedia("(max-width: 800px)");
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { scored, sorted, maxScore } = useScored(features);
@@ -60,6 +63,7 @@ export default function App() {
           if (cancelled) return;
           setFeatures(data.features.length > 0 ? data.features : SAMPLES);
           setManualOrder(data.manualOrder || []);
+          try { const ctx = await cloud.fetchProductContext(activeId); if (!cancelled) setProductContext(ctx); } catch {}
           // Check if localStorage has data to migrate
           const localWs = loadWsIndex();
           if (localWs && localWs.length > 0) setShowMigration(true);
@@ -95,6 +99,8 @@ export default function App() {
       } else {
         setFeatures(SAMPLES);
       }
+      const ctx = loadWsContext(activeId);
+      if (ctx) setProductContext(ctx);
     }
     init();
     return () => { cancelled = true; };
@@ -117,6 +123,20 @@ export default function App() {
       saveWsFeatures(activeWsId, features, manualOrder);
     }
   }, [features, manualOrder, loaded, activeWsId, isSignedIn]);
+
+  // ── Auto-save product context ──
+  useEffect(() => {
+    if (!loaded || !activeWsId) return;
+    if (isSignedIn) {
+      clearTimeout(ctxSaveTimer.current);
+      ctxSaveTimer.current = setTimeout(async () => {
+        try { await cloud.saveProductContext(activeWsId, productContext); } catch (err) { console.error("Context save failed:", err); }
+      }, 1000);
+      return () => clearTimeout(ctxSaveTimer.current);
+    } else {
+      saveWsContext(activeWsId, productContext);
+    }
+  }, [productContext, loaded, activeWsId, isSignedIn]);
 
   useEffect(() => {
     if (!wsDropdownOpen) return;
@@ -185,6 +205,7 @@ export default function App() {
         const data = await cloud.fetchFeatures(wsId);
         setFeatures(data.features || []);
         setManualOrder(data.manualOrder || []);
+        try { const ctx = await cloud.fetchProductContext(wsId); setProductContext(ctx); } catch { setProductContext({ productSummary: "", targetUsers: "", strategicPriorities: "" }); }
       } catch (err) {
         console.error("Failed to load workspace:", err);
         setFeatures([]);
@@ -195,6 +216,8 @@ export default function App() {
       const saved = loadWsFeatures(wsId);
       setFeatures(saved?.features || []);
       setManualOrder(saved?.manualOrder || []);
+      const ctx = loadWsContext(wsId);
+      setProductContext(ctx || { productSummary: "", targetUsers: "", strategicPriorities: "" });
     }
     setActiveWsId(wsId);
     if (!isSignedIn) storeActiveWsId(wsId);
@@ -232,6 +255,7 @@ export default function App() {
       try { await cloud.deleteWorkspaceApi(wsId); } catch (err) { console.error(err); return; }
     } else {
       removeWsFeatures(wsId);
+      removeWsContext(wsId);
     }
     const updated = workspaces.filter(w => w.id !== wsId);
     setWorkspaces(updated);
@@ -331,7 +355,7 @@ export default function App() {
               onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Feature</button>
             <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
           </div>
-          {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} />}
+          {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} />}
           {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
           {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
             <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>RICE Sort</button>
@@ -354,12 +378,13 @@ export default function App() {
               {scored.length > 0 ? <Matrix scored={scored} maxScore={maxScore} selectedId={selectedId} onSelect={setSelectedId} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>Add features to see the priority matrix</p></div>}
             </div>
           </div>
+          <ProductContext context={productContext} onChange={setProductContext} />
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>AI Strategy Advisor</h2>
               <Pill color={C.purple} dimColor={C.purpleDim} small>CLAUDE</Pill>
             </div>
-            <AIPanel scored={scored} />
+            <AIPanel scored={scored} productContext={productContext} />
           </div>
           <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, display: "flex", flexWrap: "wrap", gap: 16, flexDirection: isMobile ? "column" : "row" }}>
             <div>
