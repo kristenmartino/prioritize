@@ -7,6 +7,9 @@ create table public.workspaces (
   user_id text not null,
   name text not null default 'My Backlog',
   position int not null default 0,
+  product_summary text default '',
+  target_users text default '',
+  strategic_priorities text default '',
   created_at timestamptz default now()
 );
 
