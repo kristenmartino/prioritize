@@ -15,6 +15,9 @@ import { ImportPanel } from "./components/ImportPanel";
 import { AuthButton } from "./components/AuthButton";
 import { MigrationBanner } from "./components/MigrationBanner";
 import { ProductContext } from "./components/ProductContext";
+import { FeedbackDashboard } from "./components/FeedbackDashboard";
+import * as feedbackLocal from "../lib/feedback-storage";
+import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -32,6 +35,8 @@ export default function App() {
   const [importData, setImportData] = useState(null);
   const [showMigration, setShowMigration] = useState(false);
   const [productContext, setProductContext] = useState({ productSummary: "", targetUsers: "", strategicPriorities: "" });
+  const [feedbackSummary, setFeedbackSummary] = useState(null);
+  const [feedbackContext, setFeedbackContext] = useState(null);
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
@@ -299,6 +304,82 @@ export default function App() {
     }
   };
 
+  // ── Load feedback data for current workspace ──
+  useEffect(() => {
+    if (!loaded || !activeWsId) return;
+    if (isSignedIn) {
+      cloud.fetchFeedbackSummary(activeWsId).then(setFeedbackSummary).catch(() => setFeedbackSummary(null));
+      cloud.fetchFeedbackContext(activeWsId).then(setFeedbackContext).catch(() => setFeedbackContext(null));
+    } else {
+      const scoreEvents = feedbackLocal.loadScoreEvents(activeWsId);
+      const analysisEvents = feedbackLocal.loadAnalysisEvents(activeWsId);
+      setFeedbackSummary(computeSummaryMetrics(scoreEvents, analysisEvents));
+      setFeedbackContext({
+        scoreCalibration: buildScoreCalibration(scoreEvents),
+        analysisContext: buildAnalysisContext(analysisEvents),
+      });
+    }
+  }, [loaded, activeWsId, isSignedIn]);
+
+  const refreshFeedback = useCallback(() => {
+    if (!activeWsId) return;
+    if (isSignedIn) {
+      cloud.fetchFeedbackSummary(activeWsId).then(setFeedbackSummary).catch(() => {});
+      cloud.fetchFeedbackContext(activeWsId).then(setFeedbackContext).catch(() => {});
+    } else {
+      const scoreEvents = feedbackLocal.loadScoreEvents(activeWsId);
+      const analysisEvents = feedbackLocal.loadAnalysisEvents(activeWsId);
+      setFeedbackSummary(computeSummaryMetrics(scoreEvents, analysisEvents));
+      setFeedbackContext({
+        scoreCalibration: buildScoreCalibration(scoreEvents),
+        analysisContext: buildAnalysisContext(analysisEvents),
+      });
+    }
+  }, [activeWsId, isSignedIn]);
+
+  // ── Feedback handlers ──
+  const handleScoreEvent = useCallback(async (events) => {
+    if (!activeWsId) return;
+    if (isSignedIn) {
+      try { await cloud.postScoreEvents(activeWsId, events); } catch (err) { console.error("Score event failed:", err); }
+    } else {
+      for (const e of events) feedbackLocal.saveScoreEvent(activeWsId, e);
+    }
+  }, [activeWsId, isSignedIn]);
+
+  const handleResolveScores = useCallback(async (featureId, finalScores) => {
+    if (!activeWsId) return;
+    if (isSignedIn) {
+      try { await cloud.resolveScoreEvents(activeWsId, featureId, finalScores); } catch (err) { console.error("Resolve scores failed:", err); }
+    } else {
+      feedbackLocal.resolveScoreEvents(activeWsId, featureId, finalScores);
+    }
+    refreshFeedback();
+  }, [activeWsId, isSignedIn, refreshFeedback]);
+
+  const handleAnalysisEvent = useCallback(async (event) => {
+    if (!activeWsId) return null;
+    if (isSignedIn) {
+      try {
+        const result = await cloud.postAnalysisEvent(activeWsId, event);
+        return result.id;
+      } catch (err) { console.error("Analysis event failed:", err); return null; }
+    } else {
+      const saved = feedbackLocal.saveAnalysisEvent(activeWsId, event);
+      return saved.id;
+    }
+  }, [activeWsId, isSignedIn]);
+
+  const handleAnalysisFeedback = useCallback(async (eventId, thumbsUp) => {
+    if (!activeWsId || !eventId) return;
+    if (isSignedIn) {
+      try { await cloud.updateAnalysisEvent(activeWsId, eventId, { thumbs_up: thumbsUp }); } catch (err) { console.error("Analysis feedback failed:", err); }
+    } else {
+      feedbackLocal.updateAnalysisEvent(activeWsId, eventId, { thumbs_up: thumbsUp });
+    }
+    refreshFeedback();
+  }, [activeWsId, isSignedIn, refreshFeedback]);
+
   const activeWs = workspaces.find(w => w.id === activeWsId);
 
   return (
@@ -355,7 +436,7 @@ export default function App() {
               onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Feature</button>
             <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
           </div>
-          {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} />}
+          {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={handleScoreEvent} onResolveScores={handleResolveScores} feedbackContext={feedbackContext} />}
           {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
           {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
             <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>RICE Sort</button>
@@ -384,8 +465,9 @@ export default function App() {
               <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>AI Strategy Advisor</h2>
               <Pill color={C.purple} dimColor={C.purpleDim} small>CLAUDE</Pill>
             </div>
-            <AIPanel scored={scored} productContext={productContext} />
+            <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={handleAnalysisEvent} onAnalysisFeedback={handleAnalysisFeedback} feedbackContext={feedbackContext} />
           </div>
+          <FeedbackDashboard summary={feedbackSummary} />
           <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, display: "flex", flexWrap: "wrap", gap: 16, flexDirection: isMobile ? "column" : "row" }}>
             <div>
               <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em" }}>RICE FORMULA</span>

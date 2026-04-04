@@ -19,33 +19,54 @@ const demoAnalysis = (scored) => {
   };
 };
 
-export const AIPanel = ({ scored, productContext }) => {
+export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFeedback, feedbackContext }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [mode, setMode] = useState(null);
+  const [eventId, setEventId] = useState(null);
+  const [thumbs, setThumbs] = useState(null);
 
   const runAnalysis = async () => {
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setThumbs(null); setEventId(null);
+    const startTime = Date.now();
     try {
       const sorted = [...scored].sort((a, b) => b.score - a.score);
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ features: sorted, productContext }),
+        body: JSON.stringify({ features: sorted, productContext, feedbackContext }),
       });
+      const elapsed = Date.now() - startTime;
       if (res.ok) {
         const data = await res.json();
         setAnalysis(data);
         setMode("live");
+        if (onAnalysisEvent) {
+          const id = await onAnalysisEvent({ feature_count: sorted.length, mode: "live", response_ms: elapsed, top_pick: data.topPick?.name, quick_win: data.quickWin?.name, risk_flag: data.riskFlag?.name, error: false });
+          setEventId(id);
+        }
       } else {
         throw new Error("API unavailable");
       }
     } catch {
-      setAnalysis(demoAnalysis(scored));
+      const elapsed = Date.now() - startTime;
+      const demoResult = demoAnalysis(scored);
+      setAnalysis(demoResult);
       setMode("demo");
+      if (onAnalysisEvent) {
+        const id = await onAnalysisEvent({ feature_count: scored.length, mode: "demo", response_ms: elapsed, top_pick: demoResult.topPick?.name, quick_win: demoResult.quickWin?.name, risk_flag: demoResult.riskFlag?.name, error: false });
+        setEventId(id);
+      }
     }
     setLoading(false);
+  };
+
+  const handleThumbs = (isUp) => {
+    setThumbs(isUp);
+    if (onAnalysisFeedback && eventId) {
+      onAnalysisFeedback(eventId, isUp);
+    }
   };
 
   if (!analysis && !loading) {
@@ -124,7 +145,20 @@ export const AIPanel = ({ scored, productContext }) => {
           <p style={{ fontSize: 12, color: C.text, margin: "6px 0 0", lineHeight: 1.6 }}>{analysis.insight}</p>
         </div>
       )}
-      <button onClick={() => setAnalysis(null)} style={{ padding: "8px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>↻ Re-analyze</button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button onClick={() => { setAnalysis(null); setThumbs(null); setEventId(null); }} style={{ padding: "8px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>↻ Re-analyze</button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
+          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginRight: 4 }}>Helpful?</span>
+          <button onClick={() => handleThumbs(true)}
+            style={{ padding: "4px 8px", border: `1px solid ${thumbs === true ? C.accent : C.border}`, borderRadius: 6, background: thumbs === true ? C.accentGlow : "transparent", color: thumbs === true ? C.accent : C.textMuted, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
+            👍
+          </button>
+          <button onClick={() => handleThumbs(false)}
+            style={{ padding: "4px 8px", border: `1px solid ${thumbs === false ? C.danger : C.border}`, borderRadius: 6, background: thumbs === false ? C.dangerDim : "transparent", color: thumbs === false ? C.danger : C.textMuted, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
+            👎
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

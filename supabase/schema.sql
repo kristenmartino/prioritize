@@ -30,3 +30,35 @@ create table public.features (
 -- Indexes
 create index idx_workspaces_user on public.workspaces(user_id);
 create index idx_features_workspace on public.features(workspace_id);
+
+-- ─── Agent Feedback Loop Tables ─────────────────────────────────────
+
+-- Tracks AI score suggestions and whether users accepted/adjusted/rejected them
+create table public.ai_score_events (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  feature_id text not null,
+  feature_name text not null,
+  dimension text not null check (dimension in ('reach', 'impact', 'confidence', 'effort')),
+  ai_score int not null,
+  final_score int,
+  outcome text not null default 'pending' check (outcome in ('pending', 'accepted', 'adjusted', 'rejected')),
+  created_at timestamptz default now()
+);
+create index idx_score_events_ws on public.ai_score_events(workspace_id);
+
+-- Tracks AI analysis runs and user engagement signals
+create table public.ai_analysis_events (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  feature_count int not null,
+  mode text not null check (mode in ('live', 'demo')),
+  response_ms int,
+  top_pick text,
+  quick_win text,
+  risk_flag text,
+  error boolean default false,
+  thumbs_up boolean,
+  created_at timestamptz default now()
+);
+create index idx_analysis_events_ws on public.ai_analysis_events(workspace_id);
