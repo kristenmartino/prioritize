@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 
 export const useMedia = (q) => {
-  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia(q).matches);
+  const [m, setM] = useState(() => {
+    if (typeof window === "undefined") return true; // SSR: assume mobile (stacked layout)
+    return window.matchMedia(q).matches;
+  });
   useEffect(() => {
     const mql = window.matchMedia(q);
     const h = (e) => setM(e.matches);
