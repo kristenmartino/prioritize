@@ -1,15 +1,5 @@
-import { useState, useEffect } from "react";
+import { createContext, useContext } from "react";
 
-let clerkUseUser;
-try {
-  clerkUseUser = require("@clerk/nextjs").useUser;
-} catch {}
-
-export function useAuth() {
-  if (!clerkUseUser || !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return { isSignedIn: false, isLoaded: true, userId: null };
-  }
-
-  const { isSignedIn, isLoaded, user } = clerkUseUser();
-  return { isSignedIn: !!isSignedIn, isLoaded, userId: user?.id || null };
-}
+const GUEST = { isSignedIn: false, isLoaded: true, userId: null };
+export const AuthContext = createContext(GUEST);
+export const useAuth = () => useContext(AuthContext);
