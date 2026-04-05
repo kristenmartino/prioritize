@@ -52,6 +52,7 @@ export default function App() {
   // ── Init: load data from cloud or localStorage ──
   useEffect(() => {
     if (!authLoaded) return;
+    setLoaded(false);
     let cancelled = false;
     async function init() {
       if (isSignedIn) {
