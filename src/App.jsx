@@ -16,6 +16,7 @@ import { AuthButton } from "./components/AuthButton";
 import { MigrationBanner } from "./components/MigrationBanner";
 import { ProductContext } from "./components/ProductContext";
 import { FeedbackDashboard } from "./components/FeedbackDashboard";
+import { FeatureHistory } from "./components/FeatureHistory";
 import * as feedbackLocal from "../lib/feedback-storage";
 import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
 
@@ -165,6 +166,13 @@ export default function App() {
     }
   };
   const editFeature = (f) => { const { score, ...raw } = f; setEditingFeature(raw); setShowForm(true); };
+  const handleRevert = useCallback((revertedFeature) => {
+    setFeatures(prev => prev.map(f =>
+      f.id === revertedFeature.id
+        ? { ...f, name: revertedFeature.name, description: revertedFeature.description, reach: revertedFeature.reach, impact: revertedFeature.impact, confidence: revertedFeature.confidence, effort: revertedFeature.effort }
+        : f
+    ));
+  }, []);
 
   const handleDragStart = (id) => setDragId(id);
   const handleDragOver = (e) => e.preventDefault();
@@ -452,7 +460,12 @@ export default function App() {
           {displayOrder.length === 0 ? (
             <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No features yet. Add your first feature or load samples.</p></div>
           ) : displayOrder.map((f, i) => (
-            <Card key={f.id} feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
+            <div key={f.id}>
+              <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
+              {f.id === selectedId && isSignedIn && activeWsId && (
+                <FeatureHistory wsId={activeWsId} featureId={f.id} onRevert={handleRevert} />
+              )}
+            </div>
           ))}
         </div>
 
