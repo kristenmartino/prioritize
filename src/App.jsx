@@ -41,6 +41,7 @@ export default function App() {
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
+  const loadedRef = useRef(false);
   const isMobile = useMedia("(max-width: 800px)");
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { scored, sorted, maxScore } = useScored(features);
@@ -52,6 +53,7 @@ export default function App() {
   // ── Init: load data from cloud or localStorage ──
   useEffect(() => {
     if (!authLoaded) return;
+    loadedRef.current = false;
     setLoaded(false);
     let cancelled = false;
     async function init() {
@@ -81,6 +83,7 @@ export default function App() {
       } else {
         initLocal();
       }
+      loadedRef.current = true;
       setLoaded(true);
     }
     function initLocal() {
@@ -115,7 +118,7 @@ export default function App() {
 
   // ── Auto-save ──
   useEffect(() => {
-    if (!loaded || !activeWsId) return;
+    if (!loadedRef.current || !activeWsId) return;
     if (isSignedIn) {
       clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -133,7 +136,7 @@ export default function App() {
 
   // ── Auto-save product context ──
   useEffect(() => {
-    if (!loaded || !activeWsId) return;
+    if (!loadedRef.current || !activeWsId) return;
     if (isSignedIn) {
       clearTimeout(ctxSaveTimer.current);
       ctxSaveTimer.current = setTimeout(async () => {
