@@ -37,6 +37,7 @@ export default function App() {
   const [productContext, setProductContext] = useState({ productSummary: "", targetUsers: "", strategicPriorities: "" });
   const [feedbackSummary, setFeedbackSummary] = useState(null);
   const [feedbackContext, setFeedbackContext] = useState(null);
+  const [undoSnapshot, setUndoSnapshot] = useState(null);
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
@@ -66,7 +67,7 @@ export default function App() {
           setActiveWsId(activeId);
           const data = await cloud.fetchFeatures(activeId);
           if (cancelled) return;
-          setFeatures(data.features.length > 0 ? data.features : SAMPLES);
+          setFeatures(data.features);
           setManualOrder(data.manualOrder || []);
           try { const ctx = await cloud.fetchProductContext(activeId); if (!cancelled) setProductContext(ctx); } catch {}
           // Check if localStorage has data to migrate
@@ -90,7 +91,7 @@ export default function App() {
           saveWsFeatures("default", legacy);
           try { localStorage.removeItem(STORAGE_KEY); } catch {}
         } else {
-          saveWsFeatures("default", SAMPLES);
+          saveWsFeatures("default", []);
         }
         saveWsIndex(ws);
       }
@@ -99,10 +100,10 @@ export default function App() {
       setActiveWsId(activeId);
       const saved = loadWsFeatures(activeId);
       if (saved) {
-        setFeatures(saved.features.length > 0 ? saved.features : SAMPLES);
+        setFeatures(saved.features);
         setManualOrder(saved.manualOrder || []);
       } else {
-        setFeatures(SAMPLES);
+        setFeatures([]);
       }
       const ctx = loadWsContext(activeId);
       if (ctx) setProductContext(ctx);
@@ -434,7 +435,9 @@ export default function App() {
           <div data-no-print style={{ display: "flex", gap: 8 }}>
             <button onClick={() => { setEditingFeature(null); setShowForm(true); }} style={{ flex: 1, padding: "10px 16px", border: `1px dashed ${C.accent}50`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
               onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Feature</button>
-            <button onClick={() => { setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
+            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
+            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures([]); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.danger || "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Clear all features">✕ Clear</button>
+            {undoSnapshot && <button onClick={() => { setFeatures(undoSnapshot.features); setSelectedId(undoSnapshot.selectedId); setManualOrder(undoSnapshot.manualOrder); setSortMode(undoSnapshot.sortMode); setUndoSnapshot(null); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.warn || "#facc15", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Undo last action">↩ Undo</button>}
           </div>
           {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={handleScoreEvent} onResolveScores={handleResolveScores} feedbackContext={feedbackContext} />}
           {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
