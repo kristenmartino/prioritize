@@ -463,7 +463,7 @@ export default function App() {
             <div key={f.id}>
               <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
               {f.id === selectedId && isSignedIn && activeWsId && (
-                <FeatureHistory wsId={activeWsId} featureId={f.id} onRevert={handleRevert} />
+                <FeatureHistory wsId={activeWsId} featureId={f.id} feature={f} onRevert={handleRevert} />
               )}
             </div>
           ))}

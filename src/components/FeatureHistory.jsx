@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { C } from "../theme";
 import { Pill } from "./Pill";
 import * as cloud from "../../lib/cloud-storage";
@@ -129,7 +129,7 @@ const RevisionRow = ({ revision, isExpanded, onToggle, onRevert, isReverting, is
   );
 };
 
-export const FeatureHistory = ({ wsId, featureId, onRevert }) => {
+export const FeatureHistory = ({ wsId, featureId, feature, onRevert }) => {
   const [revisions, setRevisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRev, setExpandedRev] = useState(null);
@@ -137,22 +137,36 @@ export const FeatureHistory = ({ wsId, featureId, onRevert }) => {
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [reverting, setReverting] = useState(null);
+  const refreshTimer = useRef(null);
+  const isInitialLoad = useRef(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setRevisions([]);
-    setExpandedRev(null);
-    setPage(1);
-    cloud.fetchFeatureHistory(wsId, featureId, 1, 20).then(data => {
-      if (cancelled) return;
+  const fetchHistory = (showLoader) => {
+    if (showLoader) setLoading(true);
+    return cloud.fetchFeatureHistory(wsId, featureId, 1, 20).then(data => {
       setRevisions(data.revisions);
       setHasMore(data.hasMore);
       setTotal(data.total);
+      setPage(1);
       setLoading(false);
-    }).catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    }).catch(() => setLoading(false));
+  };
+
+  // Initial load
+  useEffect(() => {
+    isInitialLoad.current = true;
+    setRevisions([]);
+    setExpandedRev(null);
+    fetchHistory(true).then(() => { isInitialLoad.current = false; });
   }, [wsId, featureId]);
+
+  // Re-fetch after feature changes (delayed to wait for auto-save + server)
+  const featureKey = feature ? `${feature.name}-${feature.description}-${feature.reach}-${feature.impact}-${feature.confidence}-${feature.effort}` : "";
+  useEffect(() => {
+    if (isInitialLoad.current) return;
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => fetchHistory(false), 2000);
+    return () => clearTimeout(refreshTimer.current);
+  }, [featureKey]);
 
   const loadMore = async () => {
     const nextPage = page + 1;
