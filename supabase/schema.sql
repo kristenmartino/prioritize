@@ -10,6 +10,9 @@ create table public.workspaces (
   product_summary text default '',
   target_users text default '',
   strategic_priorities text default '',
+  constraints text default '',
+  assumptions text default '',
+  success_metrics text default '',
   created_at timestamptz default now()
 );
 
@@ -23,6 +26,9 @@ create table public.features (
   impact int not null default 50,
   confidence int not null default 50,
   effort int not null default 50,
+  owner text default null,
+  theme text default null,
+  status text default null,
   position int not null default 0,
   created_at timestamptz default now()
 );

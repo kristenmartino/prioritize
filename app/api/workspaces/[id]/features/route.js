@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withAuth, verifyWorkspaceOwner } from "../../../../../lib/api-auth";
 
 const TRACKED_FIELDS = ["name", "description", "reach", "impact", "confidence", "effort", "owner", "theme", "status"];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function generateChangeSummary(changedFields) {
   if (changedFields.length === 0) return "";
@@ -98,8 +99,8 @@ export async function POST(request, { params }) {
       .limit(1);
     const nextPos = existing?.[0] ? existing[0].position + 1 : 0;
 
-    if (feature.id) {
-      // Upsert: select full row to detect changes
+    if (feature.id && UUID_RE.test(feature.id)) {
+      // Upsert: select full row to detect changes (only for valid UUIDs)
       const { data: found } = await supabase
         .from("features")
         .select("id, name, description, reach, impact, confidence, effort, owner, theme, status")

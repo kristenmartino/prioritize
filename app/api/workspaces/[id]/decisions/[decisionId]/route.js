@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { withAuth, verifyWorkspaceOwner } from "../../../../../../lib/api-auth";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const toUuidOrNull = (v) => (v && UUID_RE.test(v) ? v : null);
+
 export async function GET(request, { params }) {
   return withAuth(async (userId, supabase) => {
     const { id, decisionId } = await params;
@@ -36,6 +39,9 @@ export async function PATCH(request, { params }) {
     const clean = Object.fromEntries(
       Object.entries(updates).filter(([k]) => allowed.includes(k))
     );
+    if ("chosen_candidate_id" in clean) {
+      clean.chosen_candidate_id = toUuidOrNull(clean.chosen_candidate_id);
+    }
     clean.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase

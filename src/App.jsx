@@ -133,7 +133,12 @@ export default function App() {
       clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
-          await cloud.syncFeatures(activeWsId, features, manualOrder);
+          const idMap = await cloud.syncFeatures(activeWsId, features, manualOrder);
+          if (idMap && Object.keys(idMap).length > 0) {
+            setFeatures(prev => prev.map(f => idMap[f.id] ? { ...f, id: idMap[f.id] } : f));
+            setManualOrder(prev => prev.map(id => idMap[id] || id));
+            if (selectedId && idMap[selectedId]) setSelectedId(idMap[selectedId]);
+          }
         } catch (err) {
           console.error("Cloud save failed:", err);
         }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { withAuth, verifyWorkspaceOwner } from "../../../../../../lib/api-auth";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const toUuidOrNull = (v) => (v && UUID_RE.test(v) ? v : null);
+
 export async function POST(request, { params }) {
   return withAuth(async (userId, supabase) => {
     const { id } = await params;
@@ -26,7 +29,7 @@ export async function POST(request, { params }) {
       body: s.body || "",
       source: s.source || "CSV Import",
       tags: s.tags || [],
-      linked_candidate_id: s.linked_candidate_id || null,
+      linked_candidate_id: toUuidOrNull(s.linked_candidate_id),
       linked_candidate_name: s.linked_candidate_name || "",
       theme: s.theme || "",
       confidence_impact: s.confidence_impact || "",

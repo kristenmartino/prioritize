@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { withAuth, verifyWorkspaceOwner } from "../../../../../lib/api-auth";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const toUuidOrNull = (v) => (v && UUID_RE.test(v) ? v : null);
+
 export async function GET(request, { params }) {
   return withAuth(async (userId, supabase) => {
     const { id } = await params;
@@ -53,7 +56,7 @@ export async function POST(request, { params }) {
         body: body.body || "",
         source: body.source || "",
         tags: body.tags || [],
-        linked_candidate_id: body.linked_candidate_id || null,
+        linked_candidate_id: toUuidOrNull(body.linked_candidate_id),
         linked_candidate_name: body.linked_candidate_name || "",
         theme: body.theme || "",
         confidence_impact: body.confidence_impact || "",
