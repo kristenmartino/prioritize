@@ -1,0 +1,142 @@
+import { useState, useRef, useEffect } from "react";
+import { C } from "../theme";
+import { AuthButton } from "./AuthButton";
+
+const NAV_ITEMS = [
+  { id: "priorities", label: "Priorities", icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+  ), enabled: true },
+  { id: "signals", label: "Signals", icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 20h4V10H4z"/><path d="M10 20h4V4h-4z"/><path d="M16 20h4v-8h-4z"/></svg>
+  ), enabled: false },
+  { id: "decisions", label: "Decisions", icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+  ), enabled: false },
+  { id: "scenarios", label: "Scenarios", icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
+  ), enabled: false },
+  { id: "settings", label: "Settings", icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg>
+  ), enabled: false },
+];
+
+const Logo = () => (
+  <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${C.blue}30`, flexShrink: 0 }}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill={C.bg} stroke="none"/><circle cx="19" cy="6" r="2" fill={C.bg} stroke="none"/></svg>
+  </div>
+);
+
+export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, onSwitchWorkspace, onAddWorkspace, onDeleteWorkspace, onRenameWorkspace, isMobile, isSignedIn }) => {
+  const [wsDropdownOpen, setWsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!wsDropdownOpen) return;
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setWsDropdownOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [wsDropdownOpen]);
+
+  // Mobile: bottom tab bar
+  if (isMobile) {
+    return (
+      <div data-no-print style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, height: 56,
+        background: C.navBg, borderTop: `1px solid ${C.navBorder}`,
+        display: "flex", alignItems: "center", justifyContent: "space-around",
+        zIndex: 100, paddingBottom: "env(safe-area-inset-bottom)",
+      }}>
+        {NAV_ITEMS.filter(n => n.id !== "settings").map(item => (
+          <button key={item.id} onClick={() => item.enabled && onScreenChange(item.id)}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              padding: "6px 12px", border: "none", background: "transparent",
+              color: activeScreen === item.id ? C.accent : C.textDim,
+              opacity: item.enabled ? 1 : 0.35, cursor: item.enabled ? "pointer" : "default",
+              fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
+            }}>
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop: vertical rail
+  return (
+    <div data-no-print style={{
+      width: 64, minHeight: "100vh", background: C.navBg, borderRight: `1px solid ${C.navBorder}`,
+      display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 0",
+      gap: 8, flexShrink: 0,
+    }}>
+      <Logo />
+
+      {/* Workspace switcher */}
+      <div ref={dropdownRef} style={{ position: "relative", margin: "8px 0" }}>
+        <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} title={activeWs?.name || "Workspace"} style={{
+          width: 32, height: 32, borderRadius: "50%", border: `1px solid ${C.navBorder}`,
+          background: C.surface, color: C.textMuted, fontSize: 11, fontWeight: 700,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>
+          {(activeWs?.name || "W").slice(0, 2).toUpperCase()}
+        </button>
+        {wsDropdownOpen && (
+          <div style={{
+            position: "absolute", top: 0, left: "calc(100% + 8px)", minWidth: 200,
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+            boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 200, overflow: "hidden",
+          }}>
+            {workspaces.map(w => (
+              <div key={w.id} style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
+                borderBottom: `1px solid ${C.border}`,
+                background: w.id === activeWs?.id ? C.accentGlow : "transparent", cursor: "pointer",
+              }} onClick={() => { if (w.id !== activeWs?.id) onSwitchWorkspace(w.id); setWsDropdownOpen(false); }}>
+                <span style={{ flex: 1, fontSize: 12, color: w.id === activeWs?.id ? C.accent : C.text, fontWeight: w.id === activeWs?.id ? 700 : 400 }}>{w.name}</span>
+                <button onClick={e => { e.stopPropagation(); onRenameWorkspace(w.id); }} style={{ padding: "2px 5px", border: "none", background: "transparent", color: C.textMuted, fontSize: 10, cursor: "pointer" }} title="Rename">✎</button>
+                {workspaces.length > 1 && <button onClick={e => { e.stopPropagation(); onDeleteWorkspace(w.id); }} style={{ padding: "2px 5px", border: "none", background: "transparent", color: C.danger + "80", fontSize: 10, cursor: "pointer" }} title="Delete">✕</button>}
+              </div>
+            ))}
+            <button onClick={() => { onAddWorkspace(); setWsDropdownOpen(false); }} style={{
+              width: "100%", padding: "8px 12px", border: "none", background: "transparent",
+              color: C.accent, fontSize: 11, fontWeight: 600, cursor: "pointer",
+              fontFamily: "'JetBrains Mono', monospace", textAlign: "left",
+            }} onMouseEnter={e => e.target.style.background = C.accentGlow} onMouseLeave={e => e.target.style.background = "transparent"}>
+              + New Workspace
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Nav items */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4, width: "100%" }}>
+        {NAV_ITEMS.map(item => {
+          const isActive = activeScreen === item.id;
+          return (
+            <button key={item.id} onClick={() => item.enabled && onScreenChange(item.id)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                padding: "10px 0", border: "none", width: "100%",
+                background: isActive ? C.accentGlow : "transparent",
+                borderLeft: isActive ? `2px solid ${C.accent}` : "2px solid transparent",
+                color: isActive ? C.accent : C.textDim,
+                opacity: item.enabled ? 1 : 0.35,
+                cursor: item.enabled ? "pointer" : "default",
+                fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
+                transition: "all 0.15s",
+              }}>
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: "auto" }}>
+        <AuthButton />
+      </div>
+    </div>
+  );
+};

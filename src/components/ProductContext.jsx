@@ -2,10 +2,10 @@ import { useState, useRef, useCallback } from "react";
 import { C } from "../theme";
 import { Pill } from "./Pill";
 
-const EMPTY = { productSummary: "", targetUsers: "", strategicPriorities: "" };
+const EMPTY = { productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" };
 
 export const ProductContext = ({ context = EMPTY, onChange }) => {
-  const hasContent = context.productSummary || context.targetUsers || context.strategicPriorities;
+  const hasContent = context.productSummary || context.targetUsers || context.strategicPriorities || context.constraints || context.assumptions || context.successMetrics;
   const [open, setOpen] = useState(!!hasContent);
   const timer = useRef(null);
 
@@ -59,6 +59,33 @@ export const ProductContext = ({ context = EMPTY, onChange }) => {
             <textarea
               value={context.strategicPriorities} onChange={e => update("strategicPriorities", e.target.value)}
               placeholder="Current quarterly goals, themes, or bets"
+              rows={2} style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.purple} onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>CONSTRAINTS</label>
+            <textarea
+              value={context.constraints || ""} onChange={e => update("constraints", e.target.value)}
+              placeholder="Budget limits, timeline, technical debt, team size..."
+              rows={2} style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.purple} onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>ASSUMPTIONS</label>
+            <textarea
+              value={context.assumptions || ""} onChange={e => update("assumptions", e.target.value)}
+              placeholder="Key assumptions behind your current priorities"
+              rows={2} style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.purple} onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>SUCCESS METRICS</label>
+            <textarea
+              value={context.successMetrics || ""} onChange={e => update("successMetrics", e.target.value)}
+              placeholder="How will you measure if the right things were prioritized?"
               rows={2} style={inputStyle}
               onFocus={e => e.target.style.borderColor = C.purple} onBlur={e => e.target.style.borderColor = C.border}
             />

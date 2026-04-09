@@ -5,6 +5,7 @@ import { Slider } from "./Slider";
 
 export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEvent, onResolveScores, feedbackContext }) => {
   const [name, setName] = useState(editFeature?.name || ""); const [desc, setDesc] = useState(editFeature?.description || "");
+  const [owner, setOwner] = useState(editFeature?.owner || ""); const [theme, setTheme] = useState(editFeature?.theme || ""); const [status, setStatus] = useState(editFeature?.status || "");
   const [r, setR] = useState(editFeature?.reach ?? 50); const [i, setI] = useState(editFeature?.impact ?? 50); const [c, setC] = useState(editFeature?.confidence ?? 50); const [e, setE] = useState(editFeature?.effort ?? 50);
   const [aiModes, setAiModes] = useState({ reach: false, impact: false, confidence: false, effort: false });
   const [aiResults, setAiResults] = useState({});
@@ -14,7 +15,7 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
   const preview = useMemo(() => rice({ reach: r, impact: i, confidence: c, effort: e }), [r, i, c, e]);
   const submit = () => {
     if (!name.trim()) return;
-    onAdd({ id: pendingFeatureId, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e });
+    onAdd({ id: pendingFeatureId, name: name.trim(), description: desc.trim(), reach: r, impact: i, confidence: c, effort: e, owner: owner.trim() || null, theme: theme.trim() || null, status: status || null });
     // Resolve any pending AI score events with the final values
     const hasAiScores = Object.values(aiModes).some(v => v);
     if (hasAiScores && onResolveScores) {
@@ -87,6 +88,26 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <input value={name} onChange={ev => setName(ev.target.value)} placeholder="Candidate name" style={{ ...inputStyle, fontSize: 14 }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
         <textarea value={desc} onChange={ev => setDesc(ev.target.value)} placeholder="Brief description (optional)" rows={2} style={{ ...inputStyle, fontSize: 13, resize: "vertical" }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>OWNER</label>
+            <input value={owner} onChange={ev => setOwner(ev.target.value)} placeholder="Owner" style={{ ...inputStyle, fontSize: 11, width: "100%", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>THEME</label>
+            <input value={theme} onChange={ev => setTheme(ev.target.value)} placeholder="Theme" style={{ ...inputStyle, fontSize: 11, width: "100%", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", marginBottom: 4, display: "block" }}>STATUS</label>
+            <select value={status} onChange={ev => setStatus(ev.target.value)} style={{ ...inputStyle, fontSize: 11, width: "100%", boxSizing: "border-box" }}>
+              <option value="">Backlog</option>
+              <option value="active">Active</option>
+              <option value="review">Review</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+        </div>
         <button onClick={suggestAll} disabled={!name.trim() || aiLoading}
           style={{ padding: "7px 14px", border: `1px solid ${C.purple}30`, borderRadius: 6, background: C.purpleDim, color: C.purple, fontSize: 11, fontWeight: 600, cursor: !name.trim() || aiLoading ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono', monospace", opacity: !name.trim() || aiLoading ? 0.4 : 1, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           onMouseEnter={ev => { if (name.trim() && !aiLoading) ev.target.style.background = `${C.purple}20`; }}

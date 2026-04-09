@@ -10,6 +10,23 @@ export const getTier = (f) => {
   return { color: C.danger, label: "AVOID" };
 };
 
+export const getConfidenceColor = (confidence) => {
+  if (confidence >= 75) return C.accent;
+  if (confidence >= 50) return C.blue;
+  if (confidence >= 25) return C.warn;
+  return C.danger;
+};
+
+export const getStatusColor = (status) => {
+  switch (status) {
+    case "active": return C.accent;
+    case "review": return C.blue;
+    case "blocked": return C.danger;
+    case "done": return C.textDim;
+    default: return C.textMuted;
+  }
+};
+
 const csvSafe = (str) => { const s = (str || "").replace(/"/g, '""'); return /^[=+\-@\t\r]/.test(s) ? `"'${s}"` : `"${s}"`; };
 
 export const exportCSV = (ordered, wsName) => {
