@@ -80,18 +80,18 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
     requestAiScores(dims);
   }, [name, requestAiScores]);
 
-  const inputStyle = { padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, outline: "none", fontFamily: "'DM Sans', sans-serif" };
+  const inputStyle = { padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, outline: "none", fontFamily: "'Inter', sans-serif" };
 
   return (
     <div style={{ padding: 20, border: `1px solid ${C.borderActive}`, borderRadius: 12, background: C.surface }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <input value={name} onChange={ev => setName(ev.target.value)} placeholder="Feature name" style={{ ...inputStyle, fontSize: 14 }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
+        <input value={name} onChange={ev => setName(ev.target.value)} placeholder="Candidate name" style={{ ...inputStyle, fontSize: 14 }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
         <textarea value={desc} onChange={ev => setDesc(ev.target.value)} placeholder="Brief description (optional)" rows={2} style={{ ...inputStyle, fontSize: 13, resize: "vertical" }} onFocus={ev => ev.target.style.borderColor = C.accent} onBlur={ev => ev.target.style.borderColor = C.border} />
         <button onClick={suggestAll} disabled={!name.trim() || aiLoading}
           style={{ padding: "7px 14px", border: `1px solid ${C.purple}30`, borderRadius: 6, background: C.purpleDim, color: C.purple, fontSize: 11, fontWeight: 600, cursor: !name.trim() || aiLoading ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono', monospace", opacity: !name.trim() || aiLoading ? 0.4 : 1, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           onMouseEnter={ev => { if (name.trim() && !aiLoading) ev.target.style.background = `${C.purple}20`; }}
           onMouseLeave={ev => ev.target.style.background = C.purpleDim}>
-          {aiLoading ? "Suggesting..." : "✦ AI Suggest All Scores"}
+          {aiLoading ? "Suggesting..." : "✦ AI Suggest Scores"}
         </button>
         {aiError && <p style={{ fontSize: 10, color: C.danger, margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>{aiError}</p>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -113,7 +113,7 @@ export const Form = ({ onAdd, onCancel, editFeature, productContext, onScoreEven
           <p style={{ fontSize: 28, fontWeight: 800, color: C.accent, margin: "4px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>{preview.toLocaleString()}</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={submit} disabled={!name.trim()} style={{ flex: 1, padding: "10px 16px", border: "none", borderRadius: 8, background: name.trim() ? C.accent : C.border, color: name.trim() ? C.bg : C.textDim, fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "not-allowed", fontFamily: "'JetBrains Mono', monospace" }}>{editFeature ? "Save Changes" : "Add Feature"}</button>
+          <button onClick={submit} disabled={!name.trim()} style={{ flex: 1, padding: "10px 16px", border: "none", borderRadius: 8, background: name.trim() ? C.accent : C.border, color: name.trim() ? C.bg : C.textDim, fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "not-allowed", fontFamily: "'JetBrains Mono', monospace" }}>{editFeature ? "Save Changes" : "Add Candidate"}</button>
           <button onClick={onCancel} style={{ padding: "10px 16px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Cancel</button>
         </div>
       </div>

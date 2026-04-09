@@ -396,22 +396,22 @@ export default function App() {
   const activeWs = workspaces.find(w => w.id === activeWsId);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <style>{`@media print { body { background: #fff !important; -webkit-print-color-adjust: exact; } [data-no-print] { display: none !important; } div { break-inside: avoid; } }`}</style>
 
       <header style={{ padding: "24px 28px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.accent}, ${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${C.accent}30` }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${C.blue}30` }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill={C.bg} stroke="none"/><circle cx="19" cy="6" r="2" fill={C.bg} stroke="none"/></svg>
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", background: `linear-gradient(135deg, ${C.text}, ${C.textMuted})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Prioritize</h1>
-            <p style={{ fontSize: 11, color: C.textMuted, margin: 0, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em" }}>AI-POWERED RICE FRAMEWORK</p>
+            <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", background: `linear-gradient(135deg, ${C.text}, ${C.textMuted})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tarazu</h1>
+            <p style={{ fontSize: 11, color: C.textMuted, margin: 0, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em" }}>DECISION INTELLIGENCE</p>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div ref={wsDropdownRef} style={{ position: "relative" }}>
-            <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+            <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
               {activeWs?.name || "Backlog"} <span style={{ fontSize: 8, color: C.textMuted }}>{wsDropdownOpen ? "▲" : "▼"}</span>
             </button>
             {wsDropdownOpen && <div style={{ position: "absolute", top: "calc(100% + 4px)", ...(isMobile ? { left: 0 } : { right: 0 }), minWidth: 200, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 100, overflow: "hidden" }}>
@@ -427,7 +427,7 @@ export default function App() {
                 onMouseEnter={e => e.target.style.background = C.accentGlow} onMouseLeave={e => e.target.style.background = "transparent"}>+ New Workspace</button>
             </div>}
           </div>
-          <Pill color={C.accent} dimColor={C.accentDim} small>{features.length} FEATURES</Pill>
+          <Pill color={C.accent} dimColor={C.accentDim} small>{features.length} CANDIDATES</Pill>
           <Pill color={C.blue} dimColor={C.blueDim} small>RICE</Pill>
           <button data-no-print onClick={() => fileInputRef.current?.click()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
             onMouseEnter={e => { e.target.style.borderColor = C.blue; e.target.style.color = C.blue; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>↑ Import</button>
@@ -446,19 +446,19 @@ export default function App() {
         <div style={{ borderRight: isMobile ? "none" : `1px solid ${C.border}`, borderBottom: isMobile ? `1px solid ${C.border}` : "none", padding: 20, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 85px)", display: "flex", flexDirection: "column", gap: 12 }}>
           <div data-no-print style={{ display: "flex", gap: 8 }}>
             <button onClick={() => { setEditingFeature(null); setShowForm(true); }} style={{ flex: 1, padding: "10px 16px", border: `1px dashed ${C.accent}50`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
-              onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Feature</button>
-            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load sample features">↻ Samples</button>
-            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures([]); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.danger || "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Clear all features">✕ Clear</button>
+              onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Candidate</button>
+            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load example backlog">↻ Samples</button>
+            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures([]); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.danger || "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Clear workspace">✕ Clear</button>
             {undoSnapshot && <button onClick={() => { setFeatures(undoSnapshot.features); setSelectedId(undoSnapshot.selectedId); setManualOrder(undoSnapshot.manualOrder); setSortMode(undoSnapshot.sortMode); setUndoSnapshot(null); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.warn || "#facc15", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Undo last action">↩ Undo</button>}
           </div>
           {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={handleScoreEvent} onResolveScores={handleResolveScores} feedbackContext={feedbackContext} />}
           {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
           {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
-            <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>RICE Sort</button>
-            <button onClick={() => { if (manualOrder.length === 0) setManualOrder(sorted.map(f => f.id)); setSortMode("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Manual Order</button>
+            <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Framework Rank</button>
+            <button onClick={() => { if (manualOrder.length === 0) setManualOrder(sorted.map(f => f.id)); setSortMode("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Judgment Override</button>
           </div>}
           {displayOrder.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No features yet. Add your first feature or load samples.</p></div>
+            <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No candidates yet. Add your first candidate or load examples.</p></div>
           ) : displayOrder.map((f, i) => (
             <div key={f.id}>
               <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
@@ -472,18 +472,18 @@ export default function App() {
         <div data-no-print style={{ padding: 24, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 85px)", display: "flex", flexDirection: "column", gap: 24 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Priority Matrix</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Tradeoff Map</h2>
               <Pill color={C.textMuted} dimColor={C.border} small>EFFORT vs IMPACT</Pill>
             </div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: "16px 12px 8px", overflow: "hidden" }}>
-              {scored.length > 0 ? <Matrix scored={scored} maxScore={maxScore} selectedId={selectedId} onSelect={setSelectedId} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>Add features to see the priority matrix</p></div>}
+              {scored.length > 0 ? <Matrix scored={scored} maxScore={maxScore} selectedId={selectedId} onSelect={setSelectedId} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>Add candidates to see the tradeoff map</p></div>}
             </div>
           </div>
           <ProductContext context={productContext} onChange={setProductContext} />
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>AI Strategy Advisor</h2>
-              <Pill color={C.purple} dimColor={C.purpleDim} small>CLAUDE</Pill>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Decision Advisor</h2>
+              <Pill color={C.purple} dimColor={C.purpleDim} small>AI</Pill>
             </div>
             <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={handleAnalysisEvent} onAnalysisFeedback={handleAnalysisFeedback} feedbackContext={feedbackContext} />
           </div>
@@ -494,7 +494,7 @@ export default function App() {
               <p style={{ fontSize: 12, color: C.textMuted, margin: "4px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>(Reach × Impact × Confidence) ÷ Effort</p>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", marginLeft: isMobile ? 0 : "auto" }}>
-              {[{ l: "QUICK WIN", c: C.accent }, { l: "STRATEGIC", c: C.blue }, { l: "LOW HANG", c: C.warn }, { l: "MONEY PIT", c: C.danger }].map(t => (
+              {[{ l: "QUICK WIN", c: C.accent }, { l: "STRATEGIC", c: C.blue }, { l: "FILL-IN", c: C.warn }, { l: "AVOID", c: C.danger }].map(t => (
                 <div key={t.l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.c }} />
                   <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>{t.l}</span>

@@ -18,7 +18,7 @@ export const ProductContext = ({ context = EMPTY, onChange }) => {
 
   const inputStyle = {
     width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6,
-    background: C.bg, color: C.text, fontSize: 12, fontFamily: "'DM Sans', sans-serif",
+    background: C.bg, color: C.text, fontSize: 12, fontFamily: "'Inter', sans-serif",
     resize: "vertical", outline: "none", boxSizing: "border-box",
   };
 
@@ -29,7 +29,7 @@ export const ProductContext = ({ context = EMPTY, onChange }) => {
         border: "none", background: "transparent", cursor: "pointer", textAlign: "left",
       }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace", flex: 1 }}>
-          PRODUCT CONTEXT
+          STRATEGY BRIEF
         </span>
         {hasContent && <Pill color={C.purple} dimColor={C.purpleDim} small>SET</Pill>}
         <span style={{ fontSize: 10, color: C.textDim, transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0)" }}>▼</span>

@@ -37,7 +37,7 @@ export const FeedbackDashboard = ({ summary }) => {
     <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, overflow: "hidden" }}>
       <button onClick={() => setExpanded(!expanded)}
         style={{ width: "100%", padding: "12px 16px", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, textAlign: "left" }}>
-        <span style={{ fontSize: 9, fontWeight: 700, color: C.purple, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>📊 AI FEEDBACK LOOP</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: C.purple, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>📊 AI CALIBRATION</span>
         <span style={{ fontSize: 10, color: t.color, fontFamily: "'JetBrains Mono', monospace", marginLeft: "auto" }}>{t.text}</span>
         <span style={{ fontSize: 10, color: C.textDim, transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "none" }}>▼</span>
       </button>

@@ -200,7 +200,7 @@ export const FeatureHistory = ({ wsId, featureId, feature, onRevert }) => {
     <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, overflow: "hidden" }}>
       <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>
-          REVISION HISTORY
+          DECISION HISTORY
         </span>
         {total > 0 && <Pill color={C.purple} dimColor={C.purpleDim} small>{total}</Pill>}
       </div>

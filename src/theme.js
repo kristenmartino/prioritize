@@ -1,19 +1,19 @@
 export const C = {
-  bg: "#0C0F14", surface: "#141820",
-  border: "#1E2430", borderActive: "#2A3140",
-  text: "#E8ECF2", textMuted: "#6B7A90", textDim: "#3D4A5C",
-  accent: "#4ADE80", accentDim: "#4ADE8030", accentGlow: "#4ADE8018",
-  danger: "#F87171", dangerDim: "#F8717120",
-  warn: "#FBBF24", warnDim: "#FBBF2420",
-  blue: "#60A5FA", blueDim: "#60A5FA20",
-  purple: "#A78BFA", purpleDim: "#A78BFA20",
+  bg: "#0E1116", surface: "#141922", surfaceAlt: "#1B2230",
+  border: "#273142", borderActive: "#2A3342",
+  text: "#E9EEF5", textMuted: "#8A96A8", textDim: "#5B6677",
+  accent: "#6FBE8E", accentDim: "#6FBE8E30", accentGlow: "#6FBE8E18",
+  danger: "#DF726A", dangerDim: "#DF726A20",
+  warn: "#D4A24C", warnDim: "#D4A24C20",
+  blue: "#5E8CFF", blueDim: "#5E8CFF20",
+  purple: "#8A7DF4", purpleDim: "#8A7DF41A",
 };
 
 export const QUADRANT_LABELS = [
   { label: "Quick Wins", sub: "High Impact · Low Effort", x: 0.25, y: 0.82, color: C.accent },
   { label: "Strategic Bets", sub: "High Impact · High Effort", x: 0.75, y: 0.82, color: C.blue },
-  { label: "Low Hanging Fruit", sub: "Low Impact · Low Effort", x: 0.25, y: 0.18, color: C.warn },
-  { label: "Money Pits", sub: "Low Impact · High Effort", x: 0.75, y: 0.18, color: C.danger },
+  { label: "Fill-ins", sub: "Low Impact · Low Effort", x: 0.25, y: 0.18, color: C.warn },
+  { label: "Avoid", sub: "Low Impact · High Effort", x: 0.75, y: 0.18, color: C.danger },
 ];
 
 export const SAMPLES = [
