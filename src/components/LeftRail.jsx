@@ -72,14 +72,18 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
       gap: 8, flexShrink: 0, overflow: "hidden",
     }}>
       {/* Workspace switcher */}
-      <div ref={dropdownRef} style={{ position: "relative", margin: "8px 0" }}>
+      <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
         <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} title={activeWs?.name || "Workspace"} style={{
-          width: 32, height: 32, borderRadius: "50%", border: `1px solid ${C.navBorder}`,
-          background: C.surface, color: C.textMuted, fontSize: 11, fontWeight: 700,
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "'JetBrains Mono', monospace",
+          width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          padding: "10px 0", border: "none",
+          background: wsDropdownOpen ? C.surface : "transparent",
+          color: C.textMuted, cursor: "pointer",
+          fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
+          transition: "all 0.15s", borderLeft: "2px solid transparent",
         }}>
-          {(activeWs?.name || "W").slice(0, 2).toUpperCase()}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span style={{ maxWidth: 56, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 9 }}>{activeWs?.name || "Workspace"}</span>
+          <span style={{ fontSize: 7, color: C.textDim }}>{wsDropdownOpen ? "▲" : "▼"}</span>
         </button>
         {wsDropdownOpen && (
           <div style={{
