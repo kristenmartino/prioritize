@@ -406,10 +406,8 @@ export default function App() {
   // ── Decision handlers ──
   const handleAddDecision = useCallback(async (decision) => {
     if (isSignedIn && activeWsId) {
-      try {
-        const result = await cloud.createDecision(activeWsId, decision);
-        setDecisions(prev => [...prev, result]);
-      } catch (err) { console.error("Create decision failed:", err); }
+      const result = await cloud.createDecision(activeWsId, decision);
+      setDecisions(prev => [...prev, result]);
     } else {
       const newDecision = { ...decision, id: `dec-${Date.now()}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       setDecisions(prev => { const updated = [...prev, newDecision]; saveWsDecisions(activeWsId, updated); return updated; });
@@ -445,10 +443,8 @@ export default function App() {
   // ── Signal handlers ──
   const handleAddSignal = useCallback(async (signal) => {
     if (isSignedIn && activeWsId) {
-      try {
-        const result = await cloud.createSignal(activeWsId, signal);
-        setSignals(prev => [result, ...prev]);
-      } catch (err) { console.error("Create signal failed:", err); }
+      const result = await cloud.createSignal(activeWsId, signal);
+      setSignals(prev => [result, ...prev]);
     } else {
       const newSignal = { ...signal, id: `sig-${Date.now()}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       setSignals(prev => { const updated = [newSignal, ...prev]; saveWsSignals(activeWsId, updated); return updated; });

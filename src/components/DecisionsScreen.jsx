@@ -39,17 +39,26 @@ export const DecisionsScreen = ({ decisions, scored, onAdd, onUpdate, onDelete }
     setShowForm(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title.trim()) return;
-    const payload = { ...form, decision_date: form.decision_date ? new Date(form.decision_date).toISOString() : new Date().toISOString(), review_date: form.review_date ? new Date(form.review_date).toISOString() : null };
-    if (editingDecision) {
-      onUpdate(editingDecision.id, payload);
-    } else {
-      onAdd(payload);
+    const payload = {
+      ...form,
+      chosen_candidate_id: form.chosen_candidate_id || null,
+      decision_date: form.decision_date ? new Date(form.decision_date).toISOString() : new Date().toISOString(),
+      review_date: form.review_date ? new Date(form.review_date).toISOString() : null,
+    };
+    try {
+      if (editingDecision) {
+        await onUpdate(editingDecision.id, payload);
+      } else {
+        await onAdd(payload);
+      }
+      setShowForm(false);
+      setEditingDecision(null);
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      console.error("Decision save failed:", err);
     }
-    setShowForm(false);
-    setEditingDecision(null);
-    setForm(EMPTY_FORM);
   };
 
   const handleCandidateSelect = (e) => {
@@ -60,7 +69,7 @@ export const DecisionsScreen = ({ decisions, scored, onAdd, onUpdate, onDelete }
   };
 
   return (
-    <div style={{ padding: "0 24px 24px" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "0 24px 24px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

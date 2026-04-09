@@ -49,17 +49,21 @@ export const SignalsScreen = ({ signals, scored, onAdd, onUpdate, onDelete, onIm
     setShowForm(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title.trim()) return;
-    const payload = { ...form, tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [] };
-    if (editingSignal) {
-      onUpdate(editingSignal.id, payload);
-    } else {
-      onAdd(payload);
+    const payload = { ...form, linked_candidate_id: form.linked_candidate_id || null, tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [] };
+    try {
+      if (editingSignal) {
+        await onUpdate(editingSignal.id, payload);
+      } else {
+        await onAdd(payload);
+      }
+      setShowForm(false);
+      setEditingSignal(null);
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      console.error("Signal save failed:", err);
     }
-    setShowForm(false);
-    setEditingSignal(null);
-    setForm(EMPTY_FORM);
   };
 
   const handleCandidateSelect = (e) => {
@@ -105,7 +109,7 @@ export const SignalsScreen = ({ signals, scored, onAdd, onUpdate, onDelete, onIm
   };
 
   return (
-    <div style={{ padding: "0 24px 24px" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "0 24px 24px" }}>
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
 
       {/* Header */}
