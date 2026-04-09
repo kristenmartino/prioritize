@@ -99,7 +99,7 @@ export const CenterCanvas = ({
       </div>
 
       {/* Content area */}
-      <div style={{ flex: 1, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 52px)", padding: 20, display: "flex", flexDirection: "column", gap: 12, paddingBottom: isMobile ? 72 : 20 }}>
+      <div style={{ flex: 1, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 48px - 52px)", padding: 20, display: "flex", flexDirection: "column", gap: 12, paddingBottom: isMobile ? 72 : 20 }}>
         {viewMode === "list" ? (
           <>
             <div data-no-print style={{ display: "flex", gap: 8 }}>

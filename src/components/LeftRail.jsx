@@ -66,12 +66,11 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
   // Desktop: vertical rail
   return (
     <div data-no-print style={{
-      width: 64, minHeight: "100vh", background: C.navBg, borderRight: `1px solid ${C.navBorder}`,
+      width: 64, height: "calc(100vh - 48px)", position: "sticky", top: 48,
+      background: C.navBg, borderRight: `1px solid ${C.navBorder}`,
       display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 0",
-      gap: 8, flexShrink: 0,
+      gap: 8, flexShrink: 0, overflow: "hidden",
     }}>
-      <Logo />
-
       {/* Workspace switcher */}
       <div ref={dropdownRef} style={{ position: "relative", margin: "8px 0" }}>
         <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} title={activeWs?.name || "Workspace"} style={{

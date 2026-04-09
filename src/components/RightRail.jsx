@@ -60,8 +60,9 @@ export const RightRail = ({
 
   return (
     <div style={{
-      width: 360, borderLeft: `1px solid ${C.border}`,
-      overflowY: "auto", maxHeight: "100vh", padding: 20,
+      borderLeft: `1px solid ${C.border}`,
+      overflowY: "auto", height: "calc(100vh - 48px)", position: "sticky", top: 48,
+      padding: 20,
       display: "flex", flexDirection: "column",
       flexShrink: 0,
     }}>

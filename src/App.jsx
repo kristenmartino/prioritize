@@ -428,13 +428,28 @@ export default function App() {
 
       {showMigration && <MigrationBanner onConfirm={handleMigration} onDismiss={() => setShowMigration(false)} />}
 
+      {/* Top bar */}
+      <header style={{
+        height: 48, padding: "0 20px", borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 50, background: C.bg,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 16px ${C.blue}25` }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill={C.bg} stroke="none"/><circle cx="19" cy="6" r="2" fill={C.bg} stroke="none"/></svg>
+          </div>
+          <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", background: `linear-gradient(135deg, ${C.text}, ${C.textMuted})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tarazu</h1>
+          <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.06em" }}>DECISION INTELLIGENCE</span>
+        </div>
+      </header>
+
       <div style={{
         display: isMobile ? "flex" : "grid",
         flexDirection: isMobile ? "column" : undefined,
         gridTemplateColumns: isMobile ? undefined
           : isTablet ? "64px 1fr"
           : "64px 1fr 360px",
-        minHeight: "100vh",
+        minHeight: "calc(100vh - 48px)",
       }}>
         {!isMobile && (
           <LeftRail
