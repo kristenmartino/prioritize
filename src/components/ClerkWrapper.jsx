@@ -5,11 +5,11 @@ import App from "../App";
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: "#4ADE80",
-    colorBackground: "#141820",
-    colorText: "#E8ECF2",
-    colorInputBackground: "#0C0F14",
-    colorInputText: "#E8ECF2",
+    colorPrimary: "#5E8CFF",
+    colorBackground: "#141922",
+    colorText: "#E9EEF5",
+    colorInputBackground: "#0E1116",
+    colorInputText: "#E9EEF5",
   },
 };
 

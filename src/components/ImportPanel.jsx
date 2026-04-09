@@ -8,7 +8,7 @@ export const ImportPanel = ({ importData, onConfirm, onCancel }) => {
     <div style={{ padding: 20, border: `1px solid ${C.borderActive}`, borderRadius: 12, background: C.surface }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Import {features.length} features</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Import {features.length} candidates</span>
           <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", padding: "2px 8px", background: C.border, borderRadius: 4 }}>{format}</span>
         </div>
         {!hasRice && (
@@ -26,7 +26,7 @@ export const ImportPanel = ({ importData, onConfirm, onCancel }) => {
           ))}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onConfirm} style={{ flex: 1, padding: "10px 16px", border: "none", borderRadius: 8, background: C.accent, color: C.bg, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Import {features.length} Features</button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: "10px 16px", border: "none", borderRadius: 8, background: C.accent, color: C.bg, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Import {features.length} Candidates</button>
           <button onClick={onCancel} style={{ padding: "10px 16px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Cancel</button>
         </div>
       </div>

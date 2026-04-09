@@ -2,10 +2,10 @@ import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
 
 export const metadata = {
-  title: "Prioritize — AI-Powered RICE Framework",
-  description: "AI-powered product prioritization using the RICE framework. Score features, visualize trade-offs, and get strategic recommendations from an AI advisor.",
+  title: "Tarazu — Decision Intelligence for Product Teams",
+  description: "Weigh what matters. Tarazu helps product teams prioritize candidates, compare tradeoffs, and document decisions with structured frameworks and explainable AI.",
   icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234ADE80' stroke-width='2'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E",
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235E8CFF' stroke-width='2'%3E%3Cline x1='4' y1='6' x2='20' y2='6' stroke-linecap='round'/%3E%3Cline x1='12' y1='6' x2='12' y2='20' stroke-linecap='round'/%3E%3Ccircle cx='5' cy='6' r='2' fill='%235E8CFF' stroke='none'/%3E%3Ccircle cx='19' cy='6' r='2' fill='%235E8CFF' stroke='none'/%3E%3C/svg%3E",
   },
 };
 
@@ -14,11 +14,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body style={{ margin: 0, background: "#0C0F14" }}>
+      <body style={{ margin: 0, background: "#0E1116" }}>
         {children}
         <Analytics />
         <Script

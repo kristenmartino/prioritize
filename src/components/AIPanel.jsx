@@ -10,12 +10,12 @@ const demoAnalysis = (scored) => {
   const risky = sorted.find(f => f.confidence <= 60) || lowest;
 
   return {
-    summary: `This backlog contains ${sorted.length} features with RICE scores ranging from ${lowest.score.toLocaleString()} to ${top.score.toLocaleString()}. The distribution suggests a healthy mix of quick wins and strategic investments, though confidence levels on some items warrant validation.`,
+    summary: `This backlog contains ${sorted.length} candidates with RICE scores ranging from ${lowest.score.toLocaleString()} to ${top.score.toLocaleString()}. The distribution suggests a healthy mix of quick wins and strategic investments, though confidence levels on some items warrant validation.`,
     topPick: { name: top.name, reason: `Highest RICE score (${top.score.toLocaleString()}) with strong reach and impact metrics, making it the highest-leverage investment in the current backlog.` },
     quickWin: { name: quickWin.name, reason: `Relatively low effort (${quickWin.effort}/100) with meaningful impact — delivers visible value to users quickly and builds team momentum.` },
     riskFlag: { name: risky.name, reason: `Confidence score of ${risky.confidence}/100 suggests insufficient validation. Consider running user research or a prototype test before committing engineering resources.` },
     sprintPlan: sorted.slice(0, Math.min(3, sorted.length)).map(f => f.name),
-    insight: `The top-ranked features share a pattern of high reach but varying confidence. Investing in lightweight validation (surveys, prototypes) for lower-confidence items could significantly improve prioritization accuracy before committing to full builds.`,
+    insight: `The top-ranked candidates share a pattern of high reach but varying confidence. Investing in lightweight validation (surveys, prototypes) for lower-confidence items could significantly improve prioritization accuracy before committing to full builds.`,
   };
 };
 
@@ -72,11 +72,11 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
   if (!analysis && !loading) {
     return (
       <button onClick={runAnalysis} disabled={scored.length < 2}
-        style={{ width: "100%", padding: "14px 20px", border: `1px solid ${C.accent}40`, borderRadius: 10, background: C.accentGlow, color: C.accent, fontSize: 13, fontWeight: 600, cursor: scored.length < 2 ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.03em", transition: "all 0.2s", opacity: scored.length < 2 ? 0.4 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-        onMouseEnter={e => { if (scored.length >= 2) e.target.style.background = C.accentDim; }}
-        onMouseLeave={e => e.target.style.background = C.accentGlow}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        Run AI Strategy Analysis
+        style={{ width: "100%", padding: "14px 20px", border: `1px solid ${C.blue}40`, borderRadius: 10, background: C.blueDim, color: C.blue, fontSize: 13, fontWeight: 600, cursor: scored.length < 2 ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.03em", transition: "all 0.2s", opacity: scored.length < 2 ? 0.4 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+        onMouseEnter={e => { if (scored.length >= 2) e.target.style.background = `${C.blue}30`; }}
+        onMouseLeave={e => e.target.style.background = C.blueDim}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="19" cy="6" r="2" fill="currentColor" stroke="none"/></svg>
+        Generate Recommendation
       </button>
     );
   }
@@ -84,8 +84,8 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
   if (loading) {
     return (
       <div style={{ padding: 24, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, textAlign: "center" }}>
-        <div style={{ display: "inline-block", width: 24, height: 24, border: `2px solid ${C.border}`, borderTopColor: C.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, fontFamily: "'JetBrains Mono', monospace" }}>Analyzing backlog strategy...</p>
+        <div style={{ display: "inline-block", width: 24, height: 24, border: `2px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, fontFamily: "'JetBrains Mono', monospace" }}>Generating recommendation...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
@@ -101,16 +101,16 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
   }
 
   const cards = [
-    { icon: "🎯", label: "TOP PRIORITY", value: analysis.topPick?.name, detail: analysis.topPick?.reason, color: C.accent },
-    { icon: "⚡", label: "QUICK WIN", value: analysis.quickWin?.name, detail: analysis.quickWin?.reason, color: C.warn },
-    { icon: "⚠️", label: "RISK FLAG", value: analysis.riskFlag?.name, detail: analysis.riskFlag?.reason, color: C.danger },
+    { icon: "🎯", label: "RECOMMENDED NEXT MOVE", value: analysis.topPick?.name, detail: analysis.topPick?.reason, color: C.accent },
+    { icon: "⚡", label: "FASTEST HIGH-VALUE WIN", value: analysis.quickWin?.name, detail: analysis.quickWin?.reason, color: C.warn },
+    { icon: "⚠️", label: "PRIMARY RISK", value: analysis.riskFlag?.name, detail: analysis.riskFlag?.reason, color: C.danger },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {mode === "demo" && (
         <div style={{ padding: "8px 12px", borderRadius: 8, background: C.purpleDim, border: `1px solid ${C.purple}30` }}>
-          <span style={{ fontSize: 10, color: C.purple, fontFamily: "'JetBrains Mono', monospace" }}>DEMO MODE — Analysis generated locally. Set up API proxy for live Claude analysis.</span>
+          <span style={{ fontSize: 10, color: C.purple, fontFamily: "'JetBrains Mono', monospace" }}>DEMO MODE — Recommendation generated locally. Configure API for live analysis.</span>
         </div>
       )}
       <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface }}>
@@ -128,7 +128,7 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
       ))}
       {analysis.sprintPlan && (
         <div style={{ padding: 14, border: `1px solid ${C.blue}20`, borderRadius: 10, background: `${C.blue}08` }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>📋 RECOMMENDED SPRINT ORDER</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>📋 SUGGESTED SEQUENCE</span>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
             {analysis.sprintPlan.map((name, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -141,14 +141,14 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
       )}
       {analysis.insight && (
         <div style={{ padding: 14, border: `1px solid ${C.purple}20`, borderRadius: 10, background: `${C.purple}08` }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: C.purple, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>💡 STRATEGIC INSIGHT</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: C.purple, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>💡 STRATEGIC READOUT</span>
           <p style={{ fontSize: 12, color: C.text, margin: "6px 0 0", lineHeight: 1.6 }}>{analysis.insight}</p>
         </div>
       )}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={() => { setAnalysis(null); setThumbs(null); setEventId(null); }} style={{ padding: "8px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>↻ Re-analyze</button>
+        <button onClick={() => { setAnalysis(null); setThumbs(null); setEventId(null); }} style={{ padding: "8px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>↻ Regenerate</button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginRight: 4 }}>Helpful?</span>
+          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginRight: 4 }}>Was this useful?</span>
           <button onClick={() => handleThumbs(true)}
             style={{ padding: "4px 8px", border: `1px solid ${thumbs === true ? C.accent : C.border}`, borderRadius: 6, background: thumbs === true ? C.accentGlow : "transparent", color: thumbs === true ? C.accent : C.textMuted, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
             👍

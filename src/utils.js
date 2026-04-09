@@ -6,8 +6,8 @@ export const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 export const getTier = (f) => {
   if (f.effort <= 50 && f.impact > 50) return { color: C.accent, label: "QUICK WIN" };
   if (f.effort > 50 && f.impact > 50) return { color: C.blue, label: "STRATEGIC" };
-  if (f.effort <= 50 && f.impact <= 50) return { color: C.warn, label: "LOW HANG" };
-  return { color: C.danger, label: "MONEY PIT" };
+  if (f.effort <= 50 && f.impact <= 50) return { color: C.warn, label: "FILL-IN" };
+  return { color: C.danger, label: "AVOID" };
 };
 
 const csvSafe = (str) => { const s = (str || "").replace(/"/g, '""'); return /^[=+\-@\t\r]/.test(s) ? `"'${s}"` : `"${s}"`; };
