@@ -69,7 +69,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
       width: 64, height: "calc(100vh - 48px)", position: "sticky", top: 48,
       background: C.navBg, borderRight: `1px solid ${C.navBorder}`,
       display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 0 12px",
-      gap: 8, flexShrink: 0,
+      gap: 8, flexShrink: 0, boxSizing: "border-box",
     }}>
       {/* Workspace switcher */}
       <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
