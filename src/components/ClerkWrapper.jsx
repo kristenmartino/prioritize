@@ -8,8 +8,17 @@ const clerkAppearance = {
     colorPrimary: "#5E8CFF",
     colorBackground: "#141922",
     colorText: "#E9EEF5",
+    colorTextSecondary: "#8A96A8",
     colorInputBackground: "#0E1116",
     colorInputText: "#E9EEF5",
+    colorNeutral: "#E9EEF5",
+  },
+  elements: {
+    userButtonPopoverCard: { backgroundColor: "#141922", borderColor: "#273142" },
+    userButtonPopoverActionButton: { color: "#E9EEF5" },
+    userButtonPopoverActionButtonText: { color: "#E9EEF5" },
+    userButtonPopoverActionButtonIcon: { color: "#8A96A8" },
+    userButtonPopoverFooter: { display: "none" },
   },
 };
 
