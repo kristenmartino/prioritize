@@ -6,19 +6,14 @@ import * as cloud from "../lib/cloud-storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
 import { useAuth } from "./hooks/useAuth";
-import { Pill } from "./components/Pill";
-import { Matrix } from "./components/Matrix";
-import { AIPanel } from "./components/AIPanel";
-import { Form } from "./components/Form";
-import { Card } from "./components/Card";
-import { ImportPanel } from "./components/ImportPanel";
-import { AuthButton } from "./components/AuthButton";
 import { MigrationBanner } from "./components/MigrationBanner";
-import { ProductContext } from "./components/ProductContext";
-import { FeedbackDashboard } from "./components/FeedbackDashboard";
-import { FeatureHistory } from "./components/FeatureHistory";
+import { LeftRail } from "./components/LeftRail";
+import { CenterCanvas } from "./components/CenterCanvas";
+import { RightRail } from "./components/RightRail";
 import * as feedbackLocal from "../lib/feedback-storage";
 import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
+
+const printStyles = `@media print { body { background: #fff !important; -webkit-print-color-adjust: exact; } [data-no-print] { display: none !important; } div { break-inside: avoid; } }`;
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -28,28 +23,36 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWsId, setActiveWsId] = useState(null);
-  const [wsDropdownOpen, setWsDropdownOpen] = useState(false);
-  const wsDropdownRef = useRef(null);
   const [sortMode, setSortMode] = useState("rice");
   const [manualOrder, setManualOrder] = useState([]);
   const [dragId, setDragId] = useState(null);
   const [importData, setImportData] = useState(null);
   const [showMigration, setShowMigration] = useState(false);
-  const [productContext, setProductContext] = useState({ productSummary: "", targetUsers: "", strategicPriorities: "" });
+  const [productContext, setProductContext] = useState({ productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" });
   const [feedbackSummary, setFeedbackSummary] = useState(null);
   const [feedbackContext, setFeedbackContext] = useState(null);
   const [undoSnapshot, setUndoSnapshot] = useState(null);
+  const [activeScreen, setActiveScreen] = useState("priorities");
+  const [viewMode, setViewMode] = useState("list");
+  const [mapColorBy, setMapColorBy] = useState("tier");
+  const [mapSizeBy, setMapSizeBy] = useState("uniform");
+  const [mapLabelMode, setMapLabelMode] = useState("hover");
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
   const loadedRef = useRef(false);
   const isMobile = useMedia("(max-width: 800px)");
+  const isTablet = useMedia("(max-width: 1024px)") && !isMobile;
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { scored, sorted, maxScore } = useScored(features);
   const displayOrder = useMemo(() => {
     if (sortMode === "rice" || manualOrder.length === 0) return sorted;
     return manualOrder.map(id => scored.find(f => f.id === id)).filter(Boolean).concat(scored.filter(f => !manualOrder.includes(f.id)));
   }, [sortMode, sorted, scored, manualOrder]);
+
+  const selectedFeature = useMemo(() =>
+    selectedId ? scored.find(f => f.id === selectedId) || null : null,
+  [selectedId, scored]);
 
   // ── Init: load data from cloud or localStorage ──
   useEffect(() => {
@@ -149,13 +152,6 @@ export default function App() {
     }
   }, [productContext, loaded, activeWsId, isSignedIn]);
 
-  useEffect(() => {
-    if (!wsDropdownOpen) return;
-    const handler = (e) => { if (wsDropdownRef.current && !wsDropdownRef.current.contains(e.target)) setWsDropdownOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [wsDropdownOpen]);
-
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
   const deleteFeature = (id) => {
     setFeatures(prev => prev.filter(f => f.id !== id));
@@ -223,7 +219,7 @@ export default function App() {
         const data = await cloud.fetchFeatures(wsId);
         setFeatures(data.features || []);
         setManualOrder(data.manualOrder || []);
-        try { const ctx = await cloud.fetchProductContext(wsId); setProductContext(ctx); } catch { setProductContext({ productSummary: "", targetUsers: "", strategicPriorities: "" }); }
+        try { const ctx = await cloud.fetchProductContext(wsId); setProductContext(ctx); } catch { setProductContext({ productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" }); }
       } catch (err) {
         console.error("Failed to load workspace:", err);
         setFeatures([]);
@@ -235,7 +231,7 @@ export default function App() {
       setFeatures(saved?.features || []);
       setManualOrder(saved?.manualOrder || []);
       const ctx = loadWsContext(wsId);
-      setProductContext(ctx || { productSummary: "", targetUsers: "", strategicPriorities: "" });
+      setProductContext(ctx || { productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" });
     }
     setActiveWsId(wsId);
     if (!isSignedIn) storeActiveWsId(wsId);
@@ -243,7 +239,7 @@ export default function App() {
     setShowForm(false);
     setEditingFeature(null);
     setSortMode("rice");
-    setWsDropdownOpen(false);
+    setViewMode("list");
   }, [isSignedIn, loaded, activeWsId, features, manualOrder]);
 
   const addWorkspace = async () => {
@@ -395,115 +391,146 @@ export default function App() {
 
   const activeWs = workspaces.find(w => w.id === activeWsId);
 
+  const handleScreenChange = useCallback((screen) => {
+    setActiveScreen(screen);
+    setSelectedId(null);
+  }, []);
+
+  const handleLoadSamples = useCallback(() => {
+    setUndoSnapshot({ features, selectedId, manualOrder, sortMode });
+    setFeatures(SAMPLES);
+    setSelectedId(null);
+    setManualOrder([]);
+    setSortMode("rice");
+  }, [features, selectedId, manualOrder, sortMode]);
+
+  const handleClear = useCallback(() => {
+    setUndoSnapshot({ features, selectedId, manualOrder, sortMode });
+    setFeatures([]);
+    setSelectedId(null);
+    setManualOrder([]);
+    setSortMode("rice");
+  }, [features, selectedId, manualOrder, sortMode]);
+
+  const handleUndo = useCallback(() => {
+    if (!undoSnapshot) return;
+    setFeatures(undoSnapshot.features);
+    setSelectedId(undoSnapshot.selectedId);
+    setManualOrder(undoSnapshot.manualOrder);
+    setSortMode(undoSnapshot.sortMode);
+    setUndoSnapshot(null);
+  }, [undoSnapshot]);
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
-      <style>{`@media print { body { background: #fff !important; -webkit-print-color-adjust: exact; } [data-no-print] { display: none !important; } div { break-inside: avoid; } }`}</style>
-
-      <header style={{ padding: "24px 28px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${C.blue}30` }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill={C.bg} stroke="none"/><circle cx="19" cy="6" r="2" fill={C.bg} stroke="none"/></svg>
-          </div>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", background: `linear-gradient(135deg, ${C.text}, ${C.textMuted})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tarazu</h1>
-            <p style={{ fontSize: 11, color: C.textMuted, margin: 0, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em" }}>DECISION INTELLIGENCE</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div ref={wsDropdownRef} style={{ position: "relative" }}>
-            <button onClick={() => setWsDropdownOpen(!wsDropdownOpen)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-              {activeWs?.name || "Backlog"} <span style={{ fontSize: 8, color: C.textMuted }}>{wsDropdownOpen ? "▲" : "▼"}</span>
-            </button>
-            {wsDropdownOpen && <div style={{ position: "absolute", top: "calc(100% + 4px)", ...(isMobile ? { left: 0 } : { right: 0 }), minWidth: 200, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 100, overflow: "hidden" }}>
-              {workspaces.map(w => (
-                <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: w.id === activeWsId ? C.accentGlow : "transparent", cursor: "pointer" }}
-                  onClick={() => { if (w.id !== activeWsId) switchWorkspace(w.id); else setWsDropdownOpen(false); }}>
-                  <span style={{ flex: 1, fontSize: 12, color: w.id === activeWsId ? C.accent : C.text, fontWeight: w.id === activeWsId ? 700 : 400 }}>{w.name}</span>
-                  <button onClick={e => { e.stopPropagation(); renameWorkspace(w.id); }} style={{ padding: "2px 5px", border: "none", background: "transparent", color: C.textMuted, fontSize: 10, cursor: "pointer" }} title="Rename">✎</button>
-                  {workspaces.length > 1 && <button onClick={e => { e.stopPropagation(); deleteWorkspace(w.id); }} style={{ padding: "2px 5px", border: "none", background: "transparent", color: C.danger + "80", fontSize: 10, cursor: "pointer" }} title="Delete">✕</button>}
-                </div>
-              ))}
-              <button onClick={addWorkspace} style={{ width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: C.accent, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", textAlign: "left" }}
-                onMouseEnter={e => e.target.style.background = C.accentGlow} onMouseLeave={e => e.target.style.background = "transparent"}>+ New Workspace</button>
-            </div>}
-          </div>
-          <Pill color={C.accent} dimColor={C.accentDim} small>{features.length} CANDIDATES</Pill>
-          <Pill color={C.blue} dimColor={C.blueDim} small>RICE</Pill>
-          <button data-no-print onClick={() => fileInputRef.current?.click()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.target.style.borderColor = C.blue; e.target.style.color = C.blue; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>↑ Import</button>
-          <button data-no-print onClick={() => exportCSV(displayOrder, activeWs?.name)} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.target.style.borderColor = C.accent; e.target.style.color = C.accent; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>↓ CSV</button>
-          <button data-no-print onClick={() => window.print()} style={{ padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.target.style.borderColor = C.purple; e.target.style.color = C.purple; }} onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.color = C.textMuted; }}>⎙ PDF</button>
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
-          <div data-no-print style={{ marginLeft: "auto" }}><AuthButton /></div>
-        </div>
-      </header>
+      <style>{printStyles}</style>
+      <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
 
       {showMigration && <MigrationBanner onConfirm={handleMigration} onDismiss={() => setShowMigration(false)} />}
 
-      <div style={{ display: isMobile ? "flex" : "grid", flexDirection: isMobile ? "column" : undefined, gridTemplateColumns: isMobile ? undefined : "minmax(300px, 380px) 1fr", minHeight: "calc(100vh - 85px)" }}>
-        <div style={{ borderRight: isMobile ? "none" : `1px solid ${C.border}`, borderBottom: isMobile ? `1px solid ${C.border}` : "none", padding: 20, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 85px)", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div data-no-print style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => { setEditingFeature(null); setShowForm(true); }} style={{ flex: 1, padding: "10px 16px", border: `1px dashed ${C.accent}50`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
-              onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Candidate</button>
-            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures(SAMPLES); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Load example backlog">↻ Samples</button>
-            <button onClick={() => { setUndoSnapshot({ features, selectedId, manualOrder, sortMode }); setFeatures([]); setSelectedId(null); setManualOrder([]); setSortMode("rice"); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.danger || "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Clear workspace">✕ Clear</button>
-            {undoSnapshot && <button onClick={() => { setFeatures(undoSnapshot.features); setSelectedId(undoSnapshot.selectedId); setManualOrder(undoSnapshot.manualOrder); setSortMode(undoSnapshot.sortMode); setUndoSnapshot(null); }} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.warn || "#facc15", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Undo last action">↩ Undo</button>}
-          </div>
-          {showForm && <Form key={editingFeature?.id || "new"} onAdd={addFeature} onCancel={() => { setShowForm(false); setEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={handleScoreEvent} onResolveScores={handleResolveScores} feedbackContext={feedbackContext} />}
-          {importData && <ImportPanel importData={importData} onConfirm={confirmImport} onCancel={() => setImportData(null)} />}
-          {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
-            <button onClick={() => setSortMode("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Framework Rank</button>
-            <button onClick={() => { if (manualOrder.length === 0) setManualOrder(sorted.map(f => f.id)); setSortMode("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Judgment Override</button>
-          </div>}
-          {displayOrder.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No candidates yet. Add your first candidate or load examples.</p></div>
-          ) : displayOrder.map((f, i) => (
-            <div key={f.id}>
-              <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => setSelectedId(f.id === selectedId ? null : f.id)} onDelete={deleteFeature} onEdit={editFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={handleMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
-              {f.id === selectedId && isSignedIn && activeWsId && (
-                <FeatureHistory wsId={activeWsId} featureId={f.id} feature={f} onRevert={handleRevert} />
-              )}
-            </div>
-          ))}
-        </div>
+      <div style={{
+        display: isMobile ? "flex" : "grid",
+        flexDirection: isMobile ? "column" : undefined,
+        gridTemplateColumns: isMobile ? undefined
+          : isTablet ? "64px 1fr"
+          : "64px 1fr 360px",
+        minHeight: "100vh",
+      }}>
+        {!isMobile && (
+          <LeftRail
+            activeScreen={activeScreen} onScreenChange={handleScreenChange}
+            activeWs={activeWs} workspaces={workspaces}
+            onSwitchWorkspace={switchWorkspace} onAddWorkspace={addWorkspace}
+            onDeleteWorkspace={deleteWorkspace} onRenameWorkspace={renameWorkspace}
+            isMobile={false} isSignedIn={isSignedIn}
+          />
+        )}
 
-        <div data-no-print style={{ padding: 24, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 85px)", display: "flex", flexDirection: "column", gap: 24 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Tradeoff Map</h2>
-              <Pill color={C.textMuted} dimColor={C.border} small>EFFORT vs IMPACT</Pill>
-            </div>
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: "16px 12px 8px", overflow: "hidden" }}>
-              {scored.length > 0 ? <Matrix scored={scored} maxScore={maxScore} selectedId={selectedId} onSelect={setSelectedId} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>Add candidates to see the tradeoff map</p></div>}
-            </div>
-          </div>
-          <ProductContext context={productContext} onChange={setProductContext} />
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Decision Advisor</h2>
-              <Pill color={C.purple} dimColor={C.purpleDim} small>AI</Pill>
-            </div>
-            <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={handleAnalysisEvent} onAnalysisFeedback={handleAnalysisFeedback} feedbackContext={feedbackContext} />
-          </div>
-          <FeedbackDashboard summary={feedbackSummary} />
-          <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, display: "flex", flexWrap: "wrap", gap: 16, flexDirection: isMobile ? "column" : "row" }}>
-            <div>
-              <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em" }}>RICE FORMULA</span>
-              <p style={{ fontSize: 12, color: C.textMuted, margin: "4px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>(Reach × Impact × Confidence) ÷ Effort</p>
-            </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginLeft: isMobile ? 0 : "auto" }}>
-              {[{ l: "QUICK WIN", c: C.accent }, { l: "STRATEGIC", c: C.blue }, { l: "FILL-IN", c: C.warn }, { l: "AVOID", c: C.danger }].map(t => (
-                <div key={t.l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.c }} />
-                  <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>{t.l}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <CenterCanvas
+          activeScreen={activeScreen} viewMode={viewMode} onViewModeChange={setViewMode}
+          features={features} scored={scored} sorted={sorted} displayOrder={displayOrder}
+          maxScore={maxScore} selectedId={selectedId} onSelect={setSelectedId}
+          showForm={showForm} onShowForm={setShowForm}
+          editingFeature={editingFeature} onEditingFeature={setEditingFeature}
+          onAddFeature={addFeature} onDeleteFeature={deleteFeature} onEditFeature={editFeature}
+          sortMode={sortMode} onSortModeChange={setSortMode}
+          manualOrder={manualOrder} onManualOrderChange={setManualOrder}
+          onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
+          dragId={dragId} onMove={handleMove}
+          undoSnapshot={undoSnapshot} onUndo={handleUndo} onLoadSamples={handleLoadSamples} onClear={handleClear}
+          importData={importData} onConfirmImport={confirmImport} onCancelImport={() => setImportData(null)}
+          onImportFile={() => fileInputRef.current?.click()}
+          onExportCSV={() => exportCSV(displayOrder, activeWs?.name)}
+          productContext={productContext} onScoreEvent={handleScoreEvent}
+          onResolveScores={handleResolveScores} feedbackContext={feedbackContext}
+          isMobile={isMobile}
+          mapColorBy={mapColorBy} mapSizeBy={mapSizeBy} mapLabelMode={mapLabelMode}
+          onMapColorByChange={setMapColorBy} onMapSizeByChange={setMapSizeBy}
+          onMapLabelModeChange={setMapLabelMode}
+          activeWs={activeWs} workspaces={workspaces}
+          onSwitchWorkspace={switchWorkspace} onAddWorkspace={addWorkspace}
+          onDeleteWorkspace={deleteWorkspace} onRenameWorkspace={renameWorkspace}
+          isSignedIn={isSignedIn} activeWsId={activeWsId}
+        />
+
+        {!isMobile && !isTablet && (
+          <RightRail
+            selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
+            scored={scored} maxScore={maxScore}
+            onEditFeature={editFeature} onDeleteFeature={deleteFeature}
+            onRevert={handleRevert}
+            productContext={productContext} onProductContextChange={setProductContext}
+            onAnalysisEvent={handleAnalysisEvent}
+            onAnalysisFeedback={handleAnalysisFeedback}
+            feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
+            isSignedIn={isSignedIn} activeWsId={activeWsId}
+            isMobile={false} isTablet={false}
+          />
+        )}
       </div>
+
+      {/* Tablet: right rail as overlay when candidate selected */}
+      {isTablet && selectedFeature && (
+        <RightRail
+          selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
+          scored={scored} maxScore={maxScore}
+          onEditFeature={editFeature} onDeleteFeature={deleteFeature}
+          onRevert={handleRevert}
+          productContext={productContext} onProductContextChange={setProductContext}
+          onAnalysisEvent={handleAnalysisEvent}
+          onAnalysisFeedback={handleAnalysisFeedback}
+          feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
+          isSignedIn={isSignedIn} activeWsId={activeWsId}
+          isMobile={false} isTablet={true}
+        />
+      )}
+
+      {/* Mobile: right rail as full-screen overlay when candidate selected */}
+      {isMobile && selectedFeature && (
+        <RightRail
+          selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
+          scored={scored} maxScore={maxScore}
+          onEditFeature={editFeature} onDeleteFeature={deleteFeature}
+          onRevert={handleRevert}
+          productContext={productContext} onProductContextChange={setProductContext}
+          onAnalysisEvent={handleAnalysisEvent}
+          onAnalysisFeedback={handleAnalysisFeedback}
+          feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
+          isSignedIn={isSignedIn} activeWsId={activeWsId}
+          isMobile={true} isTablet={false}
+        />
+      )}
+
+      {/* Mobile: bottom tab bar */}
+      {isMobile && (
+        <LeftRail
+          activeScreen={activeScreen} onScreenChange={handleScreenChange}
+          activeWs={activeWs} workspaces={workspaces}
+          onSwitchWorkspace={switchWorkspace} onAddWorkspace={addWorkspace}
+          onDeleteWorkspace={deleteWorkspace} onRenameWorkspace={renameWorkspace}
+          isMobile={true} isSignedIn={isSignedIn}
+        />
+      )}
     </div>
   );
 }

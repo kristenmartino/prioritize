@@ -1,5 +1,5 @@
 import { C } from "../theme";
-import { getTier } from "../utils";
+import { getTier, getStatusColor } from "../utils";
 import { Pill } from "./Pill";
 import { ScoreBar } from "./ScoreBar";
 
@@ -23,6 +23,13 @@ export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, max
             <span style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{feature.name}</span>
           </div>
           {feature.description && <p style={{ fontSize: 11, color: C.textMuted, margin: "0 0 8px", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{feature.description}</p>}
+          {(feature.owner || feature.theme || (feature.status && feature.status !== "backlog")) && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              {feature.owner && <span style={{ fontSize: 9, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", padding: "1px 6px", background: C.border, borderRadius: 4 }}>{feature.owner}</span>}
+              {feature.theme && <span style={{ fontSize: 9, color: C.purple, fontFamily: "'JetBrains Mono', monospace", padding: "1px 6px", background: C.purpleDim, borderRadius: 4 }}>{feature.theme}</span>}
+              {feature.status && feature.status !== "backlog" && <Pill color={getStatusColor(feature.status)} dimColor={getStatusColor(feature.status) + "20"} small>{feature.status.toUpperCase()}</Pill>}
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <ScoreBar value={feature.reach} color={C.accent} label="R" />
             <ScoreBar value={feature.impact} color={C.blue} label="I" />

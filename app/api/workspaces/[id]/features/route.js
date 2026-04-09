@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth, verifyWorkspaceOwner } from "../../../../../lib/api-auth";
 
-const TRACKED_FIELDS = ["name", "description", "reach", "impact", "confidence", "effort"];
+const TRACKED_FIELDS = ["name", "description", "reach", "impact", "confidence", "effort", "owner", "theme", "status"];
 
 function generateChangeSummary(changedFields) {
   if (changedFields.length === 0) return "";
@@ -74,6 +74,9 @@ export async function GET(request, { params }) {
       impact: r.impact,
       confidence: r.confidence,
       effort: r.effort,
+      owner: r.owner || null,
+      theme: r.theme || null,
+      status: r.status || null,
     }));
     const manualOrder = (data || []).map((r) => r.id);
     return NextResponse.json({ features, manualOrder });
@@ -99,7 +102,7 @@ export async function POST(request, { params }) {
       // Upsert: select full row to detect changes
       const { data: found } = await supabase
         .from("features")
-        .select("id, name, description, reach, impact, confidence, effort")
+        .select("id, name, description, reach, impact, confidence, effort, owner, theme, status")
         .eq("id", feature.id)
         .eq("workspace_id", id)
         .single();
@@ -111,6 +114,9 @@ export async function POST(request, { params }) {
           impact: feature.impact,
           confidence: feature.confidence,
           effort: feature.effort,
+          owner: feature.owner || null,
+          theme: feature.theme || null,
+          status: feature.status || null,
         };
 
         // Diff detection — only create revision if something changed
@@ -153,6 +159,9 @@ export async function POST(request, { params }) {
         impact: feature.impact ?? 50,
         confidence: feature.confidence ?? 50,
         effort: feature.effort ?? 50,
+        owner: feature.owner || null,
+        theme: feature.theme || null,
+        status: feature.status || null,
         position: nextPos,
       })
       .select("id")

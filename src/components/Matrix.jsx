@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { C, QUADRANT_LABELS } from "../theme";
-import { clamp, getTier } from "../utils";
+import { clamp, getTier, getConfidenceColor } from "../utils";
 
 const PAD = { top: 40, right: 30, bottom: 50, left: 50 };
 
-export const Matrix = ({ scored, maxScore, selectedId, onSelect }) => {
+export const Matrix = ({ scored, maxScore, selectedId, onSelect, colorBy = "tier", sizeBy = "uniform", labelMode = "hover" }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [hovered, setHovered] = useState(null);
@@ -78,12 +78,16 @@ export const Matrix = ({ scored, maxScore, selectedId, onSelect }) => {
     scored.forEach((f, idx) => {
       const { x, y } = positions[idx];
       const isSel = f.id === selectedId, isHov = f.id === hovered;
-      const r = isSel ? 10 : isHov ? 9 : 7;
-      const col = getTier(f).color;
+      const baseR = sizeBy === "reach" ? 4 + (f.reach / 100) * 8
+        : sizeBy === "score" ? 4 + (maxScore > 0 ? (f.score / maxScore) * 8 : 4)
+        : 7;
+      const r = isSel ? baseR + 3 : isHov ? baseR + 2 : baseR;
+      const col = colorBy === "confidence" ? getConfidenceColor(f.confidence) : getTier(f).color;
       if (isSel || isHov) { ctx.beginPath(); ctx.arc(x, y, r + 8, 0, Math.PI * 2); ctx.fillStyle = col + "20"; ctx.fill(); }
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = C.surface; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = isSel ? 2.5 : 1.5; ctx.stroke();
       ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
-      if (isSel || isHov) {
+      const showLabel = labelMode === "always" || (labelMode === "hover" && (isSel || isHov));
+      if (showLabel) {
         const lbl = f.name.length > 20 ? f.name.slice(0, 18) + "…" : f.name;
         ctx.font = "600 10px 'JetBrains Mono', monospace"; const tw = ctx.measureText(lbl).width;
         const lx = clamp(x - tw / 2 - 6, 2, dims.w - tw - 14), ly = y - r - 14;
@@ -92,7 +96,7 @@ export const Matrix = ({ scored, maxScore, selectedId, onSelect }) => {
         ctx.fillStyle = col; ctx.textAlign = "left"; ctx.fillText(lbl, lx + 6, ly + 1);
       }
     });
-  }, [scored, maxScore, positions, selectedId, hovered, dims]);
+  }, [scored, maxScore, positions, selectedId, hovered, dims, colorBy, sizeBy, labelMode]);
 
   const handleEvent = useCallback((e, click) => {
     const canvas = canvasRef.current; if (!canvas) return;

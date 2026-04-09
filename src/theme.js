@@ -7,6 +7,7 @@ export const C = {
   warn: "#D4A24C", warnDim: "#D4A24C20",
   blue: "#5E8CFF", blueDim: "#5E8CFF20",
   purple: "#8A7DF4", purpleDim: "#8A7DF41A",
+  navBg: "#0B0E13", navBorder: "#1E2736",
 };
 
 export const QUADRANT_LABELS = [
