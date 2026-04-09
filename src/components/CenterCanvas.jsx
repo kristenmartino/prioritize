@@ -8,17 +8,11 @@ import { Matrix } from "./Matrix";
 import { MapControls } from "./MapControls";
 import { PlaceholderScreen } from "./PlaceholderScreen";
 import { FeatureHistory } from "./FeatureHistory";
+import { DecisionsScreen } from "./DecisionsScreen";
+import { SignalsScreen } from "./SignalsScreen";
+import { ScenariosScreen } from "./ScenariosScreen";
 
 const PLACEHOLDER_SCREENS = {
-  signals: { title: "Signals", description: "Track market signals, user feedback, and competitive intelligence that inform prioritization.", icon: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 20h4V10H4z"/><path d="M10 20h4V4h-4z"/><path d="M16 20h4v-8h-4z"/></svg>
-  )},
-  decisions: { title: "Decisions", description: "Record and track prioritization decisions, rationale, and outcomes over time.", icon: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
-  )},
-  scenarios: { title: "Scenarios", description: "Model what-if scenarios to explore different prioritization strategies.", icon: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
-  )},
   settings: { title: "Settings", description: "Configure workspace settings, scoring frameworks, and team preferences.", icon: (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg>
   )},
@@ -43,8 +37,15 @@ export const CenterCanvas = ({
   // Mobile workspace switcher props
   activeWs, workspaces, onSwitchWorkspace, onAddWorkspace, onDeleteWorkspace, onRenameWorkspace,
   isSignedIn, activeWsId,
+  // Decisions & Signals
+  decisions, signals,
+  onAddDecision, onUpdateDecision, onDeleteDecision,
+  onAddSignal, onUpdateSignal, onDeleteSignal, onImportSignals,
 }) => {
-  // Non-priorities screen
+  // Non-priorities screens
+  if (activeScreen === "decisions") return <DecisionsScreen decisions={decisions} scored={scored} onAdd={onAddDecision} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} />;
+  if (activeScreen === "signals") return <SignalsScreen signals={signals} scored={scored} onAdd={onAddSignal} onUpdate={onUpdateSignal} onDelete={onDeleteSignal} onImport={onImportSignals} />;
+  if (activeScreen === "scenarios") return <ScenariosScreen features={features} scored={scored} sorted={sorted} activeWsId={activeWsId} isSignedIn={isSignedIn} onSelect={onSelect} isMobile={isMobile} />;
   if (activeScreen !== "priorities") {
     const ph = PLACEHOLDER_SCREENS[activeScreen];
     if (ph) return (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { C, SAMPLES } from "./theme";
 import { exportCSV, parseCSV, mapCSVToFeatures } from "./utils";
-import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, saveWsContext, loadWsContext, removeWsContext, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY } from "../lib/local-storage";
+import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, saveWsContext, loadWsContext, removeWsContext, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY, saveWsDecisions, loadWsDecisions, removeWsDecisions, saveWsSignals, loadWsSignals, removeWsSignals } from "../lib/local-storage";
 import * as cloud from "../lib/cloud-storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
@@ -37,6 +37,8 @@ export default function App() {
   const [mapColorBy, setMapColorBy] = useState("tier");
   const [mapSizeBy, setMapSizeBy] = useState("uniform");
   const [mapLabelMode, setMapLabelMode] = useState("hover");
+  const [decisions, setDecisions] = useState([]);
+  const [signals, setSignals] = useState([]);
   const fileInputRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
@@ -77,6 +79,8 @@ export default function App() {
           setFeatures(data.features);
           setManualOrder(data.manualOrder || []);
           try { const ctx = await cloud.fetchProductContext(activeId); if (!cancelled) setProductContext(ctx); } catch {}
+          try { const d = await cloud.fetchDecisions(activeId); if (!cancelled) setDecisions(d.decisions || []); } catch { if (!cancelled) setDecisions([]); }
+          try { const s = await cloud.fetchSignals(activeId); if (!cancelled) setSignals(s.signals || []); } catch { if (!cancelled) setSignals([]); }
           // Check if localStorage has data to migrate
           const localWs = loadWsIndex();
           if (localWs && localWs.length > 0) setShowMigration(true);
@@ -115,6 +119,8 @@ export default function App() {
       }
       const ctx = loadWsContext(activeId);
       if (ctx) setProductContext(ctx);
+      setDecisions(loadWsDecisions(activeId));
+      setSignals(loadWsSignals(activeId));
     }
     init();
     return () => { cancelled = true; };
@@ -220,10 +226,14 @@ export default function App() {
         setFeatures(data.features || []);
         setManualOrder(data.manualOrder || []);
         try { const ctx = await cloud.fetchProductContext(wsId); setProductContext(ctx); } catch { setProductContext({ productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" }); }
+        try { const d = await cloud.fetchDecisions(wsId); setDecisions(d.decisions || []); } catch { setDecisions([]); }
+        try { const s = await cloud.fetchSignals(wsId); setSignals(s.signals || []); } catch { setSignals([]); }
       } catch (err) {
         console.error("Failed to load workspace:", err);
         setFeatures([]);
         setManualOrder([]);
+        setDecisions([]);
+        setSignals([]);
       }
     } else {
       if (loaded && activeWsId) saveWsFeatures(activeWsId, features, manualOrder);
@@ -232,6 +242,8 @@ export default function App() {
       setManualOrder(saved?.manualOrder || []);
       const ctx = loadWsContext(wsId);
       setProductContext(ctx || { productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" });
+      setDecisions(loadWsDecisions(wsId));
+      setSignals(loadWsSignals(wsId));
     }
     setActiveWsId(wsId);
     if (!isSignedIn) storeActiveWsId(wsId);
@@ -270,6 +282,8 @@ export default function App() {
     } else {
       removeWsFeatures(wsId);
       removeWsContext(wsId);
+      removeWsDecisions(wsId);
+      removeWsSignals(wsId);
     }
     const updated = workspaces.filter(w => w.id !== wsId);
     setWorkspaces(updated);
@@ -389,6 +403,101 @@ export default function App() {
     refreshFeedback();
   }, [activeWsId, isSignedIn, refreshFeedback]);
 
+  // ── Decision handlers ──
+  const handleAddDecision = useCallback(async (decision) => {
+    if (isSignedIn && activeWsId) {
+      try {
+        const result = await cloud.createDecision(activeWsId, decision);
+        setDecisions(prev => [...prev, result]);
+      } catch (err) { console.error("Create decision failed:", err); }
+    } else {
+      const newDecision = { ...decision, id: `dec-${Date.now()}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setDecisions(prev => { const updated = [...prev, newDecision]; saveWsDecisions(activeWsId, updated); return updated; });
+    }
+  }, [isSignedIn, activeWsId]);
+
+  const handleUpdateDecision = useCallback(async (decisionId, updates) => {
+    if (isSignedIn && activeWsId) {
+      try {
+        const result = await cloud.updateDecision(activeWsId, decisionId, updates);
+        setDecisions(prev => prev.map(d => d.id === decisionId ? result : d));
+      } catch (err) { console.error("Update decision failed:", err); }
+    } else {
+      setDecisions(prev => {
+        const updated = prev.map(d => d.id === decisionId ? { ...d, ...updates, updated_at: new Date().toISOString() } : d);
+        saveWsDecisions(activeWsId, updated);
+        return updated;
+      });
+    }
+  }, [isSignedIn, activeWsId]);
+
+  const handleDeleteDecision = useCallback(async (decisionId) => {
+    if (isSignedIn && activeWsId) {
+      try { await cloud.deleteDecisionApi(activeWsId, decisionId); } catch (err) { console.error(err); return; }
+    }
+    setDecisions(prev => {
+      const updated = prev.filter(d => d.id !== decisionId);
+      if (!isSignedIn) saveWsDecisions(activeWsId, updated);
+      return updated;
+    });
+  }, [isSignedIn, activeWsId]);
+
+  // ── Signal handlers ──
+  const handleAddSignal = useCallback(async (signal) => {
+    if (isSignedIn && activeWsId) {
+      try {
+        const result = await cloud.createSignal(activeWsId, signal);
+        setSignals(prev => [result, ...prev]);
+      } catch (err) { console.error("Create signal failed:", err); }
+    } else {
+      const newSignal = { ...signal, id: `sig-${Date.now()}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setSignals(prev => { const updated = [newSignal, ...prev]; saveWsSignals(activeWsId, updated); return updated; });
+    }
+  }, [isSignedIn, activeWsId]);
+
+  const handleUpdateSignal = useCallback(async (signalId, updates) => {
+    if (isSignedIn && activeWsId) {
+      try {
+        const result = await cloud.updateSignal(activeWsId, signalId, updates);
+        setSignals(prev => prev.map(s => s.id === signalId ? result : s));
+      } catch (err) { console.error("Update signal failed:", err); }
+    } else {
+      setSignals(prev => {
+        const updated = prev.map(s => s.id === signalId ? { ...s, ...updates, updated_at: new Date().toISOString() } : s);
+        saveWsSignals(activeWsId, updated);
+        return updated;
+      });
+    }
+  }, [isSignedIn, activeWsId]);
+
+  const handleDeleteSignal = useCallback(async (signalId) => {
+    if (isSignedIn && activeWsId) {
+      try { await cloud.deleteSignalApi(activeWsId, signalId); } catch (err) { console.error(err); return; }
+    }
+    setSignals(prev => {
+      const updated = prev.filter(s => s.id !== signalId);
+      if (!isSignedIn) saveWsSignals(activeWsId, updated);
+      return updated;
+    });
+  }, [isSignedIn, activeWsId]);
+
+  const handleImportSignals = useCallback(async (signalsList) => {
+    if (isSignedIn && activeWsId) {
+      try {
+        await cloud.importSignals(activeWsId, signalsList);
+        const fresh = await cloud.fetchSignals(activeWsId);
+        setSignals(fresh.signals || []);
+      } catch (err) { console.error("Import signals failed:", err); }
+    } else {
+      setSignals(prev => {
+        const withIds = signalsList.map((s, i) => ({ ...s, id: `sig-${Date.now()}-${i}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }));
+        const updated = [...withIds, ...prev];
+        saveWsSignals(activeWsId, updated);
+        return updated;
+      });
+    }
+  }, [isSignedIn, activeWsId]);
+
   const activeWs = workspaces.find(w => w.id === activeWsId);
 
   const handleScreenChange = useCallback((screen) => {
@@ -486,6 +595,10 @@ export default function App() {
           onSwitchWorkspace={switchWorkspace} onAddWorkspace={addWorkspace}
           onDeleteWorkspace={deleteWorkspace} onRenameWorkspace={renameWorkspace}
           isSignedIn={isSignedIn} activeWsId={activeWsId}
+          decisions={decisions} signals={signals}
+          onAddDecision={handleAddDecision} onUpdateDecision={handleUpdateDecision} onDeleteDecision={handleDeleteDecision}
+          onAddSignal={handleAddSignal} onUpdateSignal={handleUpdateSignal} onDeleteSignal={handleDeleteSignal}
+          onImportSignals={handleImportSignals}
         />
 
         {!isMobile && !isTablet && (
