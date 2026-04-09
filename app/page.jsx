@@ -1,20 +1,25 @@
-"use client";
-import dynamic from "next/dynamic";
-import { GuestAuthProvider } from "../src/components/AuthProvider";
-import App from "../src/App";
+import { LandingNav } from "../src/components/landing/LandingNav";
+import { LandingHero } from "../src/components/landing/LandingHero";
+import { LandingProofStrip } from "../src/components/landing/LandingProofStrip";
+import { LandingProblems } from "../src/components/landing/LandingProblems";
+import { LandingCapabilities } from "../src/components/landing/LandingCapabilities";
+import { LandingComparison } from "../src/components/landing/LandingComparison";
+import { LandingTiers } from "../src/components/landing/LandingTiers";
+import { LandingAudience } from "../src/components/landing/LandingAudience";
+import { LandingCTA } from "../src/components/landing/LandingCTA";
 
-const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-// Only load Clerk when configured — keeps bundle small and avoids import errors without keys
-const ClerkPage = clerkKey
-  ? dynamic(() => import("../src/components/ClerkWrapper"), { ssr: false })
-  : null;
-
-export default function Page() {
-  if (ClerkPage) return <ClerkPage />;
+export default function LandingPage() {
   return (
-    <GuestAuthProvider>
-      <App />
-    </GuestAuthProvider>
+    <main style={{ minHeight: "100vh", background: "#0E1116", color: "#E9EEF5", fontFamily: "'Inter', sans-serif" }}>
+      <LandingNav />
+      <LandingHero />
+      <LandingProofStrip />
+      <LandingProblems />
+      <LandingCapabilities />
+      <LandingComparison />
+      <LandingTiers />
+      <LandingAudience />
+      <LandingCTA />
+    </main>
   );
 }

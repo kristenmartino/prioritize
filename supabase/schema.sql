@@ -87,3 +87,66 @@ create table public.feature_revisions (
 create unique index idx_revisions_feature_number on public.feature_revisions(feature_id, revision_number);
 create index idx_revisions_feature_created on public.feature_revisions(feature_id, created_at desc);
 create index idx_revisions_workspace on public.feature_revisions(workspace_id);
+
+-- ─── Decisions ────────────────────────────────────────────────────────
+
+create table public.decisions (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  title text not null,
+  chosen_candidate_id uuid references public.features(id) on delete set null,
+  chosen_candidate_name text not null default '',
+  summary_rationale text not null default '',
+  final_rationale text not null default '',
+  framework_used text not null default 'RICE',
+  evidence_count int not null default 0,
+  owner text default '',
+  status text not null default 'draft',
+  recommendation_snapshot jsonb not null default '{}'::jsonb,
+  tradeoffs_considered text not null default '',
+  risks_accepted text not null default '',
+  expected_outcome text not null default '',
+  decision_date timestamptz not null default now(),
+  review_date timestamptz,
+  position int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index idx_decisions_workspace on public.decisions(workspace_id);
+
+-- ─── Signals ──────────────────────────────────────────────────────────
+
+create table public.signals (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  type text not null default 'note',
+  title text not null,
+  body text not null default '',
+  source text not null default '',
+  tags text[] not null default '{}',
+  linked_candidate_id uuid references public.features(id) on delete set null,
+  linked_candidate_name text not null default '',
+  theme text not null default '',
+  confidence_impact text not null default '',
+  position int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index idx_signals_workspace on public.signals(workspace_id);
+
+-- ─── Scenarios ────────────────────────────────────────────────────────
+
+create table public.scenarios (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  name text not null,
+  description text default '',
+  weight_reach numeric(4,2) not null default 1.0,
+  weight_impact numeric(4,2) not null default 1.0,
+  weight_confidence numeric(4,2) not null default 1.0,
+  weight_effort numeric(4,2) not null default 1.0,
+  position int not null default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index idx_scenarios_workspace on public.scenarios(workspace_id);
