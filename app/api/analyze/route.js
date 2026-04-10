@@ -34,12 +34,14 @@ ${features.map((f, i) => `${i + 1}. "${f.name}" — Reach:${f.reach} Impact:${f.
 Respond ONLY with a JSON object (no markdown, no backticks). Structure:
 {
   "summary": "2-sentence executive summary of the backlog health",
-  "topPick": { "name": "feature name", "reason": "1-sentence why to build first" },
-  "riskFlag": { "name": "feature name", "reason": "1-sentence risk concern" },
-  "quickWin": { "name": "feature name", "reason": "1-sentence why this is a quick win" },
+  "topPick": { "name": "feature name", "reason": "1-sentence why to build first", "confidence": "high" | "medium" | "low" },
+  "riskFlag": { "name": "feature name", "reason": "1-sentence risk concern", "confidence": "high" | "medium" | "low" },
+  "quickWin": { "name": "feature name", "reason": "1-sentence why this is a quick win", "confidence": "high" | "medium" | "low" },
   "sprintPlan": ["feature 1 name", "feature 2 name", "feature 3 name"],
   "insight": "1 non-obvious strategic observation about this backlog"
-}`;
+}
+
+For confidence: "high" means strong data supports this pick, "medium" means reasonable but debatable, "low" means weak evidence or uncertain.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

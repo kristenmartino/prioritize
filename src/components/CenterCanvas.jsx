@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { C, SAMPLES } from "../theme";
 import { exportCSV } from "../utils";
 import { Pill } from "./Pill";
@@ -11,6 +12,7 @@ import { FeatureHistory } from "./FeatureHistory";
 import { DecisionsScreen } from "./DecisionsScreen";
 import { SignalsScreen } from "./SignalsScreen";
 import { ScenariosScreen } from "./ScenariosScreen";
+import { WorkspaceHome } from "./WorkspaceHome";
 
 const PLACEHOLDER_SCREENS = {
   settings: { title: "Settings", description: "Configure workspace settings, scoring frameworks, and team preferences.", icon: (
@@ -41,8 +43,30 @@ export const CenterCanvas = ({
   decisions, signals,
   onAddDecision, onUpdateDecision, onDeleteDecision,
   onAddSignal, onUpdateSignal, onDeleteSignal, onImportSignals,
+  onScreenChange,
 }) => {
+  // Signal counts per candidate
+  const signalCounts = useMemo(() => {
+    const counts = {};
+    for (const s of signals) {
+      const cid = s.linked_candidate_id;
+      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+    }
+    return counts;
+  }, [signals]);
+
+  // Map filter state
+  const [mapFilterOwner, setMapFilterOwner] = useState("all");
+  const [mapFilterTheme, setMapFilterTheme] = useState("all");
+  const uniqueOwners = useMemo(() => [...new Set(scored.map(f => f.owner).filter(Boolean))].sort(), [scored]);
+  const uniqueThemes = useMemo(() => [...new Set(scored.map(f => f.theme).filter(Boolean))].sort(), [scored]);
+  const filteredScored = useMemo(() => scored.filter(f =>
+    (mapFilterOwner === "all" || f.owner === mapFilterOwner) &&
+    (mapFilterTheme === "all" || f.theme === mapFilterTheme)
+  ), [scored, mapFilterOwner, mapFilterTheme]);
+
   // Non-priorities screens
+  if (activeScreen === "home") return <WorkspaceHome scored={scored} decisions={decisions} signals={signals} activeWs={activeWs} onScreenChange={onScreenChange} />;
   if (activeScreen === "decisions") return <DecisionsScreen decisions={decisions} scored={scored} onAdd={onAddDecision} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} />;
   if (activeScreen === "signals") return <SignalsScreen signals={signals} scored={scored} onAdd={onAddSignal} onUpdate={onUpdateSignal} onDelete={onDeleteSignal} onImport={onImportSignals} />;
   if (activeScreen === "scenarios") return <ScenariosScreen features={features} scored={scored} sorted={sorted} activeWsId={activeWsId} isSignedIn={isSignedIn} onSelect={onSelect} isMobile={isMobile} />;
@@ -120,7 +144,7 @@ export const CenterCanvas = ({
               <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No candidates yet. Add your first candidate or load examples.</p></div>
             ) : displayOrder.map((f, i) => (
               <div key={f.id}>
-                <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => onSelect(f.id === selectedId ? null : f.id)} onDelete={onDeleteFeature} onEdit={onEditFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={onMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} />
+                <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => onSelect(f.id === selectedId ? null : f.id)} onDelete={onDeleteFeature} onEdit={onEditFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={onMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} signalCount={signalCounts[f.id] || 0} updatedAt={f.updated_at || f.created_at} />
                 {f.id === selectedId && isMobile && isSignedIn && activeWsId && (
                   <FeatureHistory wsId={activeWsId} featureId={f.id} feature={f} />
                 )}
@@ -129,9 +153,9 @@ export const CenterCanvas = ({
           </>
         ) : (
           <>
-            <MapControls colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} onColorByChange={onMapColorByChange} onSizeByChange={onMapSizeByChange} onLabelModeChange={onMapLabelModeChange} />
+            <MapControls colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} onColorByChange={onMapColorByChange} onSizeByChange={onMapSizeByChange} onLabelModeChange={onMapLabelModeChange} filterOwner={mapFilterOwner} filterTheme={mapFilterTheme} owners={uniqueOwners} themes={uniqueThemes} onFilterOwnerChange={setMapFilterOwner} onFilterThemeChange={setMapFilterTheme} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: "16px 12px 8px", overflow: "hidden" }}>
-              {scored.length > 0 ? <Matrix scored={scored} maxScore={maxScore} selectedId={selectedId} onSelect={onSelect} colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>Add candidates to see the tradeoff map</p></div>}
+              {filteredScored.length > 0 ? <Matrix scored={filteredScored} maxScore={maxScore} selectedId={selectedId} onSelect={onSelect} colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>{scored.length > 0 ? "No candidates match the current filters" : "Add candidates to see the tradeoff map"}</p></div>}
             </div>
             <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, display: "flex", flexWrap: "wrap", gap: 16, flexDirection: isMobile ? "column" : "row" }}>
               <div>

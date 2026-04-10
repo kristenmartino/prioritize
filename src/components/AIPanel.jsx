@@ -2,6 +2,8 @@ import { useState } from "react";
 import { C } from "../theme";
 import { Pill } from "./Pill";
 
+const confLevel = (c) => c >= 70 ? "high" : c >= 50 ? "medium" : "low";
+
 const demoAnalysis = (scored) => {
   const sorted = [...scored].sort((a, b) => b.score - a.score);
   const top = sorted[0];
@@ -11,12 +13,18 @@ const demoAnalysis = (scored) => {
 
   return {
     summary: `This backlog contains ${sorted.length} candidates with RICE scores ranging from ${lowest.score.toLocaleString()} to ${top.score.toLocaleString()}. The distribution suggests a healthy mix of quick wins and strategic investments, though confidence levels on some items warrant validation.`,
-    topPick: { name: top.name, reason: `Highest RICE score (${top.score.toLocaleString()}) with strong reach and impact metrics, making it the highest-leverage investment in the current backlog.` },
-    quickWin: { name: quickWin.name, reason: `Relatively low effort (${quickWin.effort}/100) with meaningful impact — delivers visible value to users quickly and builds team momentum.` },
-    riskFlag: { name: risky.name, reason: `Confidence score of ${risky.confidence}/100 suggests insufficient validation. Consider running user research or a prototype test before committing engineering resources.` },
+    topPick: { name: top.name, reason: `Highest RICE score (${top.score.toLocaleString()}) with strong reach and impact metrics, making it the highest-leverage investment in the current backlog.`, confidence: confLevel(top.confidence) },
+    quickWin: { name: quickWin.name, reason: `Relatively low effort (${quickWin.effort}/100) with meaningful impact — delivers visible value to users quickly and builds team momentum.`, confidence: confLevel(quickWin.confidence) },
+    riskFlag: { name: risky.name, reason: `Confidence score of ${risky.confidence}/100 suggests insufficient validation. Consider running user research or a prototype test before committing engineering resources.`, confidence: "low" },
     sprintPlan: sorted.slice(0, Math.min(3, sorted.length)).map(f => f.name),
     insight: `The top-ranked candidates share a pattern of high reach but varying confidence. Investing in lightweight validation (surveys, prototypes) for lower-confidence items could significantly improve prioritization accuracy before committing to full builds.`,
   };
+};
+
+const CONF_STYLES = {
+  high: { color: "#10b981", label: "HIGH" },
+  medium: { color: "#3b82f6", label: "MEDIUM" },
+  low: { color: "#f87171", label: "LOW" },
 };
 
 export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFeedback, feedbackContext }) => {
@@ -101,9 +109,9 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
   }
 
   const cards = [
-    { icon: "🎯", label: "RECOMMENDED NEXT MOVE", value: analysis.topPick?.name, detail: analysis.topPick?.reason, color: C.accent },
-    { icon: "⚡", label: "FASTEST HIGH-VALUE WIN", value: analysis.quickWin?.name, detail: analysis.quickWin?.reason, color: C.warn },
-    { icon: "⚠️", label: "PRIMARY RISK", value: analysis.riskFlag?.name, detail: analysis.riskFlag?.reason, color: C.danger },
+    { icon: "🎯", label: "RECOMMENDED NEXT MOVE", value: analysis.topPick?.name, detail: analysis.topPick?.reason, color: C.accent, confidence: analysis.topPick?.confidence },
+    { icon: "⚡", label: "FASTEST HIGH-VALUE WIN", value: analysis.quickWin?.name, detail: analysis.quickWin?.reason, color: C.warn, confidence: analysis.quickWin?.confidence },
+    { icon: "⚠️", label: "PRIMARY RISK", value: analysis.riskFlag?.name, detail: analysis.riskFlag?.reason, color: C.danger, confidence: analysis.riskFlag?.confidence },
   ];
 
   return (
@@ -116,16 +124,25 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
       <div style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface }}>
         <p style={{ fontSize: 12, color: C.text, lineHeight: 1.6, margin: 0 }}>{analysis.summary}</p>
       </div>
-      {cards.map((c, i) => (
-        <div key={i} style={{ padding: 14, border: `1px solid ${c.color}20`, borderRadius: 10, background: `${c.color}08`, display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 18 }}>{c.icon}</span>
-          <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: c.color, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>{c.label}</span>
-            <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: "3px 0 2px" }}>{c.value}</p>
-            <p style={{ fontSize: 11, color: C.textMuted, margin: 0, lineHeight: 1.5 }}>{c.detail}</p>
+      {cards.map((c, i) => {
+        const conf = c.confidence && CONF_STYLES[c.confidence];
+        return (
+          <div key={i} style={{ padding: 14, border: `1px solid ${c.color}20`, borderRadius: 10, background: `${c.color}08`, display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 18 }}>{c.icon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: c.color, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>{c.label}</span>
+                {conf && <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: conf.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 8, fontWeight: 700, color: conf.color, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.05em" }}>{conf.label}</span>
+                </span>}
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: "3px 0 2px" }}>{c.value}</p>
+              <p style={{ fontSize: 11, color: C.textMuted, margin: 0, lineHeight: 1.5 }}>{c.detail}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {analysis.sprintPlan && (
         <div style={{ padding: 14, border: `1px solid ${C.blue}20`, borderRadius: 10, background: `${C.blue}08` }}>
           <span style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace" }}>📋 SUGGESTED SEQUENCE</span>
@@ -158,6 +175,20 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
             👎
           </button>
         </div>
+      </div>
+      <div style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
+        {[
+          { label: "MODE", value: mode === "live" ? "Live" : "Demo" },
+          { label: "CANDIDATES", value: scored.length },
+          { label: "FRAMEWORK", value: "RICE" },
+          { label: "CONTEXT", value: productContext?.productSummary ? "Provided" : "Not provided" },
+          { label: "CALIBRATION", value: feedbackContext?.scoreCalibration ? `Active (${feedbackContext.scoreCalibration.split("\n").length} events)` : "None" },
+        ].map(m => (
+          <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>{m.label}</span>
+            <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>{m.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

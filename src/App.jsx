@@ -32,7 +32,7 @@ export default function App() {
   const [feedbackSummary, setFeedbackSummary] = useState(null);
   const [feedbackContext, setFeedbackContext] = useState(null);
   const [undoSnapshot, setUndoSnapshot] = useState(null);
-  const [activeScreen, setActiveScreen] = useState("priorities");
+  const [activeScreen, setActiveScreen] = useState("home");
   const [viewMode, setViewMode] = useState("list");
   const [mapColorBy, setMapColorBy] = useState("tier");
   const [mapSizeBy, setMapSizeBy] = useState("uniform");
@@ -600,6 +600,7 @@ export default function App() {
           onAddDecision={handleAddDecision} onUpdateDecision={handleUpdateDecision} onDeleteDecision={handleDeleteDecision}
           onAddSignal={handleAddSignal} onUpdateSignal={handleUpdateSignal} onDeleteSignal={handleDeleteSignal}
           onImportSignals={handleImportSignals}
+          onScreenChange={handleScreenChange}
         />
 
         {!isMobile && !isTablet && (

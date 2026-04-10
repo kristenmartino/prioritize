@@ -1,9 +1,9 @@
 import { C } from "../theme";
-import { getTier, getStatusColor } from "../utils";
+import { getTier, getStatusColor, relativeTime } from "../utils";
 import { Pill } from "./Pill";
 import { ScoreBar } from "./ScoreBar";
 
-export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, maxScore, draggable: canDrag, onDragStart, onDragOver, onDrop, isDragging, showMoveButtons, onMove, isFirst, isLast }) => {
+export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, maxScore, draggable: canDrag, onDragStart, onDragOver, onDrop, isDragging, showMoveButtons, onMove, isFirst, isLast, signalCount, updatedAt }) => {
   const { score } = feature;
   const tier = getTier(feature);
   const moveBtnStyle = (disabled) => ({ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: disabled ? "transparent" : C.surface, color: disabled ? C.textDim : C.warn, fontSize: 14, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.3 : 1, lineHeight: 1 });
@@ -23,11 +23,13 @@ export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, max
             <span style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{feature.name}</span>
           </div>
           {feature.description && <p style={{ fontSize: 11, color: C.textMuted, margin: "0 0 8px", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{feature.description}</p>}
-          {(feature.owner || feature.theme || (feature.status && feature.status !== "backlog")) && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          {(feature.owner || feature.theme || (feature.status && feature.status !== "backlog") || signalCount > 0 || updatedAt) && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
               {feature.owner && <span style={{ fontSize: 9, color: C.textMuted, fontFamily: "'JetBrains Mono', monospace", padding: "1px 6px", background: C.border, borderRadius: 4 }}>{feature.owner}</span>}
               {feature.theme && <span style={{ fontSize: 9, color: C.purple, fontFamily: "'JetBrains Mono', monospace", padding: "1px 6px", background: C.purpleDim, borderRadius: 4 }}>{feature.theme}</span>}
               {feature.status && feature.status !== "backlog" && <Pill color={getStatusColor(feature.status)} dimColor={getStatusColor(feature.status) + "20"} small>{feature.status.toUpperCase()}</Pill>}
+              {signalCount > 0 && <span style={{ fontSize: 9, color: C.blue, fontFamily: "'JetBrains Mono', monospace", padding: "1px 6px", background: C.blueDim, borderRadius: 4 }}>{signalCount} signal{signalCount !== 1 ? "s" : ""}</span>}
+              {updatedAt && <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginLeft: "auto" }}>{relativeTime(updatedAt)}</span>}
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>

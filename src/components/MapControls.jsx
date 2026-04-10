@@ -6,7 +6,7 @@ const selectStyle = {
   outline: "none", cursor: "pointer",
 };
 
-export const MapControls = ({ colorBy, sizeBy, labelMode, onColorByChange, onSizeByChange, onLabelModeChange }) => (
+export const MapControls = ({ colorBy, sizeBy, labelMode, onColorByChange, onSizeByChange, onLabelModeChange, filterOwner, filterTheme, owners, themes, onFilterOwnerChange, onFilterThemeChange }) => (
   <div data-no-print style={{ display: "flex", alignItems: "center", gap: 14, padding: "8px 0", flexWrap: "wrap" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>COLOR</label>
@@ -31,5 +31,23 @@ export const MapControls = ({ colorBy, sizeBy, labelMode, onColorByChange, onSiz
         <option value="off">Off</option>
       </select>
     </div>
+    {owners && owners.length > 0 && (
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>OWNER</label>
+        <select value={filterOwner} onChange={e => onFilterOwnerChange(e.target.value)} style={selectStyle}>
+          <option value="all">All</option>
+          {owners.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+    )}
+    {themes && themes.length > 0 && (
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>THEME</label>
+        <select value={filterTheme} onChange={e => onFilterThemeChange(e.target.value)} style={selectStyle}>
+          <option value="all">All</option>
+          {themes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+    )}
   </div>
 );
