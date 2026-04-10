@@ -148,7 +148,7 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button onClick={() => { setAnalysis(null); setThumbs(null); setEventId(null); }} style={{ padding: "8px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>↻ Regenerate</button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginRight: 4 }}>Was this useful?</span>
+          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginRight: 4 }}>Was this recommendation useful?</span>
           <button onClick={() => handleThumbs(true)}
             style={{ padding: "4px 8px", border: `1px solid ${thumbs === true ? C.accent : C.border}`, borderRadius: 6, background: thumbs === true ? C.accentGlow : "transparent", color: thumbs === true ? C.accent : C.textMuted, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
             👍
