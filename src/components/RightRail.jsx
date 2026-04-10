@@ -14,6 +14,7 @@ export const RightRail = ({
   feedbackContext, feedbackSummary,
   isSignedIn, activeWsId,
   isMobile, isTablet,
+  signals, onScreenChange,
 }) => {
   const isOverlay = isMobile || isTablet;
 
@@ -27,15 +28,20 @@ export const RightRail = ({
       isSignedIn={isSignedIn}
       activeWsId={activeWsId}
       onRevert={onRevert}
+      signals={signals}
+      onScreenChange={onScreenChange}
     />
   ) : (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <ProductContext context={productContext} onChange={onProductContextChange} />
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Decision Advisor</h2>
           <Pill color={C.purple} dimColor={C.purpleDim} small>AI</Pill>
         </div>
+        <p style={{ fontSize: 10, color: C.textDim, margin: "0 0 12px", lineHeight: 1.5, fontFamily: "'JetBrains Mono', monospace" }}>
+          Recommendation generated from current candidate scores, strategy context, and available signals.
+        </p>
         <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={onAnalysisEvent} onAnalysisFeedback={onAnalysisFeedback} feedbackContext={feedbackContext} />
       </div>
       <FeedbackDashboard summary={feedbackSummary} />
@@ -46,15 +52,32 @@ export const RightRail = ({
 
   if (isOverlay) {
     return (
-      <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0,
-        width: isMobile ? "100%" : 360, background: C.surface,
-        borderLeft: `1px solid ${C.border}`, zIndex: 200,
-        overflowY: "auto", padding: 20,
-        boxShadow: `-8px 0 32px ${C.bg}80`,
-      }}>
-        {content}
-      </div>
+      <>
+        {/* Backdrop */}
+        <div onClick={onDeselect} style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", zIndex: 199,
+        }} />
+        {/* Panel */}
+        <div style={{
+          position: "fixed", top: isMobile ? "10%" : 0, right: 0, bottom: 0,
+          width: isMobile ? "100%" : 360, background: C.surface,
+          borderLeft: `1px solid ${C.border}`,
+          borderTopLeftRadius: isMobile ? 16 : 0,
+          borderTopRightRadius: isMobile ? 16 : 0,
+          zIndex: 200,
+          overflowY: "auto", padding: "8px 20px 20px",
+          boxShadow: `-8px 0 32px ${C.bg}80`,
+        }}>
+          {/* Drag handle */}
+          {isMobile && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 12px" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: C.border }} />
+            </div>
+          )}
+          {content}
+        </div>
+      </>
     );
   }
 

@@ -13,7 +13,16 @@ import { RightRail } from "./components/RightRail";
 import * as feedbackLocal from "../lib/feedback-storage";
 import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
 
-const printStyles = `@media print { body { background: #fff !important; -webkit-print-color-adjust: exact; } [data-no-print] { display: none !important; } div { break-inside: avoid; } }`;
+const printStyles = `@media print {
+  body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; }
+  [data-no-print] { display: none !important; }
+  [data-print-only] { display: block !important; }
+  div { break-inside: avoid; }
+  @page { margin: 1.5cm; }
+  header { position: static !important; border-bottom: 2px solid #333 !important; background: #fff !important; }
+  header h1 { background: none !important; -webkit-text-fill-color: #1a1a1a !important; color: #1a1a1a !important; }
+  header span { color: #666 !important; }
+}`;
 
 export default function App() {
   const [features, setFeatures] = useState([]);
@@ -34,6 +43,8 @@ export default function App() {
   const [undoSnapshot, setUndoSnapshot] = useState(null);
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewMode, setViewMode] = useState("list");
+  const [mobileWsOpen, setMobileWsOpen] = useState(false);
+  const mobileWsRef = useRef(null);
   const [mapColorBy, setMapColorBy] = useState("tier");
   const [mapSizeBy, setMapSizeBy] = useState("uniform");
   const [mapLabelMode, setMapLabelMode] = useState("hover");
@@ -549,8 +560,48 @@ export default function App() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.bg} strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/><line x1="12" y1="6" x2="12" y2="20" strokeLinecap="round"/><circle cx="5" cy="6" r="2" fill={C.bg} stroke="none"/><circle cx="19" cy="6" r="2" fill={C.bg} stroke="none"/></svg>
           </div>
           <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", background: `linear-gradient(135deg, ${C.text}, ${C.textMuted})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tarazu</h1>
-          <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.06em" }}>DECISION INTELLIGENCE</span>
+          {!isMobile && <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.06em" }}>DECISION INTELLIGENCE</span>}
         </div>
+        {isMobile && (
+          <div ref={mobileWsRef} style={{ position: "relative" }}>
+            <button onClick={() => setMobileWsOpen(!mobileWsOpen)} style={{
+              padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6,
+              background: "transparent", color: C.textMuted, fontSize: 11, cursor: "pointer",
+              fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 4,
+            }}>
+              <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeWs?.name || "Workspace"}</span>
+              <span style={{ fontSize: 8, color: C.textDim }}>{mobileWsOpen ? "▲" : "▼"}</span>
+            </button>
+            {mobileWsOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 4px)", right: 0, minWidth: 200,
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+                boxShadow: `0 8px 24px ${C.bg}80`, zIndex: 300, overflow: "hidden",
+              }}>
+                {workspaces.map(w => (
+                  <button key={w.id} onClick={() => { if (w.id !== activeWsId) switchWorkspace(w.id); setMobileWsOpen(false); }}
+                    style={{
+                      width: "100%", padding: "10px 14px", border: "none", textAlign: "left",
+                      background: w.id === activeWsId ? C.accentGlow : "transparent",
+                      color: w.id === activeWsId ? C.accent : C.text, fontSize: 12,
+                      fontWeight: w.id === activeWsId ? 700 : 400, cursor: "pointer",
+                      borderBottom: `1px solid ${C.border}`,
+                    }}>
+                    {w.name}
+                  </button>
+                ))}
+                <button onClick={() => { addWorkspace(); setMobileWsOpen(false); }}
+                  style={{
+                    width: "100%", padding: "10px 14px", border: "none", textAlign: "left",
+                    background: "transparent", color: C.accent, fontSize: 11, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                  + New Workspace
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div style={{
@@ -615,6 +666,7 @@ export default function App() {
             feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
             isSignedIn={isSignedIn} activeWsId={activeWsId}
             isMobile={false} isTablet={false}
+            signals={signals} onScreenChange={handleScreenChange}
           />
         )}
       </div>
@@ -632,10 +684,11 @@ export default function App() {
           feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
           isSignedIn={isSignedIn} activeWsId={activeWsId}
           isMobile={false} isTablet={true}
+          signals={signals} onScreenChange={handleScreenChange}
         />
       )}
 
-      {/* Mobile: right rail as full-screen overlay when candidate selected */}
+      {/* Mobile: right rail as bottom sheet overlay when candidate selected */}
       {isMobile && selectedFeature && (
         <RightRail
           selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
@@ -648,6 +701,7 @@ export default function App() {
           feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
           isSignedIn={isSignedIn} activeWsId={activeWsId}
           isMobile={true} isTablet={false}
+          signals={signals} onScreenChange={handleScreenChange}
         />
       )}
 

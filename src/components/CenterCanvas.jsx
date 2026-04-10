@@ -127,6 +127,12 @@ export const CenterCanvas = ({
       <div style={{ flex: 1, overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 48px - 52px)", padding: 20, display: "flex", flexDirection: "column", gap: 12, paddingBottom: isMobile ? 72 : 20 }}>
         {viewMode === "list" ? (
           <>
+            <div data-print-only style={{ display: "none", padding: "0 0 12px", borderBottom: "2px solid #333", marginBottom: 8 }}>
+              <h1 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 4px", color: "#1a1a1a" }}>{activeWs?.name || "Priorities"}</h1>
+              <p style={{ fontSize: 11, color: "#666", margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>
+                {features.length} candidates — RICE framework — Exported {new Date().toLocaleDateString()}
+              </p>
+            </div>
             <div data-no-print style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { onEditingFeature(null); onShowForm(true); }} style={{ flex: 1, padding: "10px 16px", border: `1px dashed ${C.accent}50`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
                 onMouseEnter={e => e.target.style.background = C.accentDim} onMouseLeave={e => e.target.style.background = C.accentGlow}>+ Add Candidate</button>

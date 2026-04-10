@@ -4,7 +4,8 @@ import { Pill } from "./Pill";
 import { ScoreBar } from "./ScoreBar";
 import { FeatureHistory } from "./FeatureHistory";
 
-export const CandidateDetail = ({ feature, maxScore, onEdit, onDelete, onDeselect, isSignedIn, activeWsId, onRevert }) => {
+export const CandidateDetail = ({ feature, maxScore, onEdit, onDelete, onDeselect, isSignedIn, activeWsId, onRevert, signals, onScreenChange }) => {
+  const linkedSignals = (signals || []).filter(s => s.linked_candidate_id === feature.id);
   const tier = getTier(feature);
   const statusColor = feature.status ? getStatusColor(feature.status) : null;
 
@@ -27,6 +28,11 @@ export const CandidateDetail = ({ feature, maxScore, onEdit, onDelete, onDeselec
         <ScoreBar value={feature.impact} color={C.blue} label="I" />
         <ScoreBar value={feature.confidence} color={C.purple} label="C" />
         <ScoreBar value={feature.effort} color={C.warn} label="E" />
+        <div style={{ padding: "6px 0", marginTop: 2 }}>
+          <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace" }}>
+            (<span style={{ color: C.accent }}>{feature.reach}</span> × <span style={{ color: C.blue }}>{feature.impact}</span> × <span style={{ color: C.purple }}>{feature.confidence}</span>) ÷ <span style={{ color: C.warn }}>{feature.effort}</span> = <span style={{ color: tier.color, fontWeight: 700 }}>{feature.score.toLocaleString()}</span>
+          </span>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -61,6 +67,26 @@ export const CandidateDetail = ({ feature, maxScore, onEdit, onDelete, onDeselec
           ✕ Remove
         </button>
       </div>
+
+      {linkedSignals.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>LINKED SIGNALS</span>
+            <span style={{ fontSize: 9, color: C.blue, fontFamily: "'JetBrains Mono', monospace" }}>{linkedSignals.length}</span>
+          </div>
+          {linkedSignals.slice(0, 3).map(s => (
+            <div key={s.id} style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg }}>
+              <span style={{ fontSize: 11, color: C.text }}>{s.title}</span>
+              {s.source && <span style={{ fontSize: 9, color: C.textDim, fontFamily: "'JetBrains Mono', monospace", marginLeft: 6 }}>{s.source}</span>}
+            </div>
+          ))}
+          {linkedSignals.length > 3 && (
+            <button onClick={() => onScreenChange?.("signals")} style={{ padding: "4px 10px", border: `1px solid ${C.blue}20`, borderRadius: 6, background: "transparent", color: C.blue, fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>
+              View all {linkedSignals.length} signals
+            </button>
+          )}
+        </div>
+      )}
 
       {isSignedIn && activeWsId && (
         <FeatureHistory wsId={activeWsId} featureId={feature.id} feature={feature} onRevert={onRevert} />

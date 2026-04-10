@@ -49,7 +49,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
         display: "flex", alignItems: "center", justifyContent: "space-around",
         zIndex: 100, paddingBottom: "env(safe-area-inset-bottom)",
       }}>
-        {NAV_ITEMS.filter(n => n.id !== "settings").map(item => (
+        {NAV_ITEMS.filter(n => n.id !== "settings" && n.id !== "scenarios").map(item => (
           <button key={item.id} onClick={() => item.enabled && onScreenChange(item.id)}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
