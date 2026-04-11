@@ -9,7 +9,7 @@ export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, max
   const moveBtnStyle = (disabled) => ({ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: disabled ? "transparent" : C.surface, color: disabled ? C.textDim : C.warn, fontSize: 14, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.3 : 1, lineHeight: 1 });
 
   return (
-    <div onClick={onClick} draggable={canDrag} onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart?.(feature.id); }} onDragOver={e => { e.preventDefault(); onDragOver?.(e); }} onDrop={() => onDrop?.(feature.id)} style={{ padding: 14, border: `1px solid ${isSelected ? tier.color + "50" : C.border}`, borderRadius: 10, background: isSelected ? tier.color + "08" : C.surface, cursor: canDrag ? "grab" : "pointer", transition: "all 0.2s", opacity: isDragging ? 0.4 : 1 }}
+    <div onClick={onClick} draggable={canDrag} onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart?.(feature.id); }} onDragOver={e => { e.preventDefault(); onDragOver?.(e); }} onDrop={() => onDrop?.(feature.id)} style={{ padding: 14, border: `1px solid ${isSelected ? tier.color + "50" : C.border}`, borderRadius: 10, background: isSelected ? tier.color + "08" : C.surface, cursor: canDrag ? "grab" : "pointer", transition: "all 0.2s", opacity: isDragging ? 0.4 : 1, animation: `fadeIn 0.2s ease both`, animationDelay: `${(rank - 1) * 30}ms` }}
       onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = C.borderActive; }}
       onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = C.border; }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>

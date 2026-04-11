@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { C, SAMPLES } from "./theme";
 import { exportCSV, parseCSV, mapCSVToFeatures } from "./utils";
-import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, saveWsContext, loadWsContext, removeWsContext, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY, saveWsDecisions, loadWsDecisions, removeWsDecisions, saveWsSignals, loadWsSignals, removeWsSignals } from "../lib/local-storage";
+import { load, saveWsIndex, loadWsIndex, saveWsFeatures, loadWsFeatures, removeWsFeatures, saveWsContext, loadWsContext, removeWsContext, getActiveWsId, setActiveWsId as storeActiveWsId, STORAGE_KEY, saveWsDecisions, loadWsDecisions, removeWsDecisions, saveWsSignals, loadWsSignals, removeWsSignals, saveWsSettings, loadWsSettings, removeWsSettings } from "../lib/local-storage";
 import * as cloud from "../lib/cloud-storage";
 import { useMedia } from "./hooks/useMedia";
 import { useScored } from "./hooks/useScored";
@@ -10,8 +10,15 @@ import { MigrationBanner } from "./components/MigrationBanner";
 import { LeftRail } from "./components/LeftRail";
 import { CenterCanvas } from "./components/CenterCanvas";
 import { RightRail } from "./components/RightRail";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import * as feedbackLocal from "../lib/feedback-storage";
 import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
+
+const animStyles = `
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+`;
 
 const printStyles = `@media print {
   body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; }
@@ -50,9 +57,12 @@ export default function App() {
   const [mapLabelMode, setMapLabelMode] = useState("hover");
   const [decisions, setDecisions] = useState([]);
   const [signals, setSignals] = useState([]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const fileInputRef = useRef(null);
+  const searchRef = useRef(null);
   const saveTimer = useRef(null);
   const ctxSaveTimer = useRef(null);
+  const settingsSaveTimer = useRef(null);
   const loadedRef = useRef(false);
   const isMobile = useMedia("(max-width: 800px)");
   const isTablet = useMedia("(max-width: 1024px)") && !isMobile;
@@ -92,6 +102,15 @@ export default function App() {
           try { const ctx = await cloud.fetchProductContext(activeId); if (!cancelled) setProductContext(ctx); } catch {}
           try { const d = await cloud.fetchDecisions(activeId); if (!cancelled) setDecisions(d.decisions || []); } catch { if (!cancelled) setDecisions([]); }
           try { const s = await cloud.fetchSignals(activeId); if (!cancelled) setSignals(s.signals || []); } catch { if (!cancelled) setSignals([]); }
+          // Load UI settings from localStorage (even for cloud users)
+          const settings = loadWsSettings(activeId);
+          if (!cancelled && settings) {
+            if (settings.viewMode) setViewMode(settings.viewMode);
+            if (settings.sortMode) setSortMode(settings.sortMode);
+            if (settings.mapColorBy) setMapColorBy(settings.mapColorBy);
+            if (settings.mapSizeBy) setMapSizeBy(settings.mapSizeBy);
+            if (settings.mapLabelMode) setMapLabelMode(settings.mapLabelMode);
+          }
           // Check if localStorage has data to migrate
           const localWs = loadWsIndex();
           if (localWs && localWs.length > 0) setShowMigration(true);
@@ -132,6 +151,14 @@ export default function App() {
       if (ctx) setProductContext(ctx);
       setDecisions(loadWsDecisions(activeId));
       setSignals(loadWsSignals(activeId));
+      const settings = loadWsSettings(activeId);
+      if (settings) {
+        if (settings.viewMode) setViewMode(settings.viewMode);
+        if (settings.sortMode) setSortMode(settings.sortMode);
+        if (settings.mapColorBy) setMapColorBy(settings.mapColorBy);
+        if (settings.mapSizeBy) setMapSizeBy(settings.mapSizeBy);
+        if (settings.mapLabelMode) setMapLabelMode(settings.mapLabelMode);
+      }
     }
     init();
     return () => { cancelled = true; };
@@ -173,6 +200,16 @@ export default function App() {
       saveWsContext(activeWsId, productContext);
     }
   }, [productContext, loaded, activeWsId, isSignedIn]);
+
+  // ── Auto-save settings ──
+  useEffect(() => {
+    if (!loadedRef.current || !activeWsId) return;
+    clearTimeout(settingsSaveTimer.current);
+    settingsSaveTimer.current = setTimeout(() => {
+      saveWsSettings(activeWsId, { viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode });
+    }, 500);
+    return () => clearTimeout(settingsSaveTimer.current);
+  }, [viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode, activeWsId]);
 
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
   const deleteFeature = (id) => {
@@ -266,8 +303,12 @@ export default function App() {
     setSelectedId(null);
     setShowForm(false);
     setEditingFeature(null);
-    setSortMode("rice");
-    setViewMode("list");
+    const settings = loadWsSettings(wsId);
+    setSortMode(settings?.sortMode || "rice");
+    setViewMode(settings?.viewMode || "list");
+    setMapColorBy(settings?.mapColorBy || "tier");
+    setMapSizeBy(settings?.mapSizeBy || "uniform");
+    setMapLabelMode(settings?.mapLabelMode || "hover");
   }, [isSignedIn, loaded, activeWsId, features, manualOrder]);
 
   const addWorkspace = async () => {
@@ -300,6 +341,7 @@ export default function App() {
       removeWsContext(wsId);
       removeWsDecisions(wsId);
       removeWsSignals(wsId);
+      removeWsSettings(wsId);
     }
     const updated = workspaces.filter(w => w.id !== wsId);
     setWorkspaces(updated);
@@ -542,9 +584,34 @@ export default function App() {
     setUndoSnapshot(null);
   }, [undoSnapshot]);
 
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const SCREENS = ["home", "priorities", "signals", "decisions", "scenarios"];
+    const handler = (e) => {
+      const tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key) {
+        case "?": e.preventDefault(); setShowShortcuts(v => !v); break;
+        case "Escape": setShowShortcuts(false); setSelectedId(null); setShowForm(false); setEditingFeature(null); break;
+        case "n": if (activeScreen === "priorities") { e.preventDefault(); setEditingFeature(null); setShowForm(true); } break;
+        case "/": if (activeScreen === "priorities" && viewMode === "list") { e.preventDefault(); searchRef.current?.focus(); } break;
+        case "1": case "2": case "3": case "4": case "5": {
+          const screen = SCREENS[parseInt(e.key) - 1];
+          if (screen) handleScreenChange(screen);
+          break;
+        }
+        default: break;
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [activeScreen, viewMode, handleScreenChange]);
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <style>{printStyles}</style>
+      <style>{animStyles}</style>
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
 
       {showMigration && <MigrationBanner onConfirm={handleMigration} onDismiss={() => setShowMigration(false)} />}
@@ -652,6 +719,7 @@ export default function App() {
           onAddSignal={handleAddSignal} onUpdateSignal={handleUpdateSignal} onDeleteSignal={handleDeleteSignal}
           onImportSignals={handleImportSignals}
           onScreenChange={handleScreenChange}
+          searchRef={searchRef}
         />
 
         {!isMobile && !isTablet && (
@@ -715,6 +783,8 @@ export default function App() {
           isMobile={true} isSignedIn={isSignedIn}
         />
       )}
+
+      {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }

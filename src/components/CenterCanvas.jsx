@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { C, SAMPLES } from "../theme";
 import { exportCSV } from "../utils";
 import { Pill } from "./Pill";
@@ -14,6 +14,7 @@ import { SignalsScreen } from "./SignalsScreen";
 import { ScenariosScreen } from "./ScenariosScreen";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { SettingsScreen } from "./SettingsScreen";
+import { OnboardingPanel } from "./OnboardingPanel";
 
 const PLACEHOLDER_SCREENS = {};
 
@@ -41,6 +42,7 @@ export const CenterCanvas = ({
   onAddDecision, onUpdateDecision, onDeleteDecision,
   onAddSignal, onUpdateSignal, onDeleteSignal, onImportSignals,
   onScreenChange,
+  searchRef: externalSearchRef,
 }) => {
   // Signal counts per candidate
   const signalCounts = useMemo(() => {
@@ -66,13 +68,20 @@ export const CenterCanvas = ({
   const [listFilterOwner, setListFilterOwner] = useState("all");
   const [listFilterTheme, setListFilterTheme] = useState("all");
   const [listFilterStatus, setListFilterStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const localSearchRef = useRef(null);
+  const searchInputRef = externalSearchRef || localSearchRef;
   const uniqueStatuses = useMemo(() => [...new Set(scored.map(f => f.status).filter(Boolean))].sort(), [scored]);
-  const filteredDisplayOrder = useMemo(() => displayOrder.filter(f =>
-    (listFilterOwner === "all" || f.owner === listFilterOwner) &&
-    (listFilterTheme === "all" || f.theme === listFilterTheme) &&
-    (listFilterStatus === "all" || f.status === listFilterStatus)
-  ), [displayOrder, listFilterOwner, listFilterTheme, listFilterStatus]);
-  const listFiltersActive = listFilterOwner !== "all" || listFilterTheme !== "all" || listFilterStatus !== "all";
+  const filteredDisplayOrder = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return displayOrder.filter(f =>
+      (listFilterOwner === "all" || f.owner === listFilterOwner) &&
+      (listFilterTheme === "all" || f.theme === listFilterTheme) &&
+      (listFilterStatus === "all" || f.status === listFilterStatus) &&
+      (!q || f.name.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q)))
+    );
+  }, [displayOrder, listFilterOwner, listFilterTheme, listFilterStatus, searchQuery]);
+  const listFiltersActive = listFilterOwner !== "all" || listFilterTheme !== "all" || listFilterStatus !== "all" || searchQuery !== "";
 
   // Map preset handler
   const handleMapPreset = (preset) => {
@@ -159,6 +168,13 @@ export const CenterCanvas = ({
               <button onClick={onClear} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.danger, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Clear workspace">✕ Clear Workspace</button>
               {undoSnapshot && <button onClick={onUndo} style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: "transparent", color: C.warn, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }} title="Undo last action">↩ Undo</button>}
             </div>
+            {scored.length > 0 && (
+              <div data-no-print style={{ position: "relative" }}>
+                <input ref={searchInputRef} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search candidates..." style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", outline: "none", boxSizing: "border-box" }} />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                {searchQuery && <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", padding: "2px 6px", border: "none", background: "transparent", color: C.textMuted, fontSize: 12, cursor: "pointer" }}>✕</button>}
+              </div>
+            )}
             {showForm && <Form key={editingFeature?.id || "new"} onAdd={onAddFeature} onCancel={() => { onShowForm(false); onEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={onScoreEvent} onResolveScores={onResolveScores} feedbackContext={feedbackContext} />}
             {importData && <ImportPanel importData={importData} onConfirm={onConfirmImport} onCancel={onCancelImport} />}
             {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
@@ -200,7 +216,11 @@ export const CenterCanvas = ({
               </div>
             )}
             {filteredDisplayOrder.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>{listFiltersActive ? "No candidates match the current filters" : "No candidates yet. Add your first candidate or load examples."}</p></div>
+              listFiltersActive ? (
+                <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No candidates match the current filters</p></div>
+              ) : (
+                <OnboardingPanel onAddCandidate={() => { onEditingFeature(null); onShowForm(true); }} onLoadSamples={onLoadSamples} />
+              )
             ) : filteredDisplayOrder.map((f, i) => (
               <div key={f.id}>
                 <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => onSelect(f.id === selectedId ? null : f.id)} onDelete={onDeleteFeature} onEdit={onEditFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={onMove} isFirst={i === 0} isLast={i === filteredDisplayOrder.length - 1} signalCount={signalCounts[f.id] || 0} updatedAt={f.updated_at || f.created_at} />

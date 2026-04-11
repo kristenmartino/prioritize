@@ -69,6 +69,7 @@ export const RightRail = ({
           zIndex: 200,
           overflowY: "auto", padding: "8px 20px 20px",
           boxShadow: `-8px 0 32px ${C.bg}80`,
+          animation: isMobile ? "slideUp 0.3s ease" : "slideInRight 0.25s ease",
         }}>
           {/* Drag handle */}
           {isMobile && (
@@ -88,7 +89,7 @@ export const RightRail = ({
       overflowY: "auto", height: "calc(100vh - 48px)", position: "sticky", top: 48,
       padding: 20, boxSizing: "border-box",
       display: "flex", flexDirection: "column",
-      flexShrink: 0,
+      flexShrink: 0, animation: "fadeIn 0.2s ease",
     }}>
       {content}
     </div>
