@@ -15,6 +15,7 @@ export const RightRail = ({
   isSignedIn, activeWsId,
   isMobile, isTablet,
   signals, onScreenChange,
+  onAddDecision,
 }) => {
   const isOverlay = isMobile || isTablet;
 
@@ -42,7 +43,7 @@ export const RightRail = ({
         <p style={{ fontSize: 10, color: C.textDim, margin: "0 0 12px", lineHeight: 1.5, fontFamily: "'JetBrains Mono', monospace" }}>
           Recommendation generated from current candidate scores, strategy context, and available signals.
         </p>
-        <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={onAnalysisEvent} onAnalysisFeedback={onAnalysisFeedback} feedbackContext={feedbackContext} />
+        <AIPanel scored={scored} productContext={productContext} onAnalysisEvent={onAnalysisEvent} onAnalysisFeedback={onAnalysisFeedback} feedbackContext={feedbackContext} onSaveDecisionDraft={onAddDecision} onScreenChange={onScreenChange} />
       </div>
       <FeedbackDashboard summary={feedbackSummary} />
     </div>

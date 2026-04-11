@@ -306,9 +306,9 @@ export default function App() {
     if (!isSignedIn) saveWsIndex(updated);
     if (activeWsId === wsId) switchWorkspace(updated[0].id);
   };
-  const renameWorkspace = async (wsId) => {
+  const renameWorkspace = async (wsId, newName) => {
     const ws = workspaces.find(w => w.id === wsId);
-    const name = prompt("New name:", ws?.name);
+    const name = newName || prompt("New name:", ws?.name);
     if (!name?.trim()) return;
     if (isSignedIn) {
       try { await cloud.renameWorkspaceApi(wsId, name.trim()); } catch (err) { console.error(err); return; }
@@ -666,7 +666,7 @@ export default function App() {
             feedbackContext={feedbackContext} feedbackSummary={feedbackSummary}
             isSignedIn={isSignedIn} activeWsId={activeWsId}
             isMobile={false} isTablet={false}
-            signals={signals} onScreenChange={handleScreenChange}
+            signals={signals} onScreenChange={handleScreenChange} onAddDecision={handleAddDecision}
           />
         )}
       </div>

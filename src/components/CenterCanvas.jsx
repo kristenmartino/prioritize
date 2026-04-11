@@ -13,12 +13,9 @@ import { DecisionsScreen } from "./DecisionsScreen";
 import { SignalsScreen } from "./SignalsScreen";
 import { ScenariosScreen } from "./ScenariosScreen";
 import { WorkspaceHome } from "./WorkspaceHome";
+import { SettingsScreen } from "./SettingsScreen";
 
-const PLACEHOLDER_SCREENS = {
-  settings: { title: "Settings", description: "Configure workspace settings, scoring frameworks, and team preferences.", icon: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg>
-  )},
-};
+const PLACEHOLDER_SCREENS = {};
 
 export const CenterCanvas = ({
   activeScreen, viewMode, onViewModeChange,
@@ -65,11 +62,33 @@ export const CenterCanvas = ({
     (mapFilterTheme === "all" || f.theme === mapFilterTheme)
   ), [scored, mapFilterOwner, mapFilterTheme]);
 
+  // List filter state
+  const [listFilterOwner, setListFilterOwner] = useState("all");
+  const [listFilterTheme, setListFilterTheme] = useState("all");
+  const [listFilterStatus, setListFilterStatus] = useState("all");
+  const uniqueStatuses = useMemo(() => [...new Set(scored.map(f => f.status).filter(Boolean))].sort(), [scored]);
+  const filteredDisplayOrder = useMemo(() => displayOrder.filter(f =>
+    (listFilterOwner === "all" || f.owner === listFilterOwner) &&
+    (listFilterTheme === "all" || f.theme === listFilterTheme) &&
+    (listFilterStatus === "all" || f.status === listFilterStatus)
+  ), [displayOrder, listFilterOwner, listFilterTheme, listFilterStatus]);
+  const listFiltersActive = listFilterOwner !== "all" || listFilterTheme !== "all" || listFilterStatus !== "all";
+
+  // Map preset handler
+  const handleMapPreset = (preset) => {
+    onMapColorByChange(preset.colorBy);
+    onMapSizeByChange(preset.sizeBy);
+    onMapLabelModeChange(preset.labelMode);
+    setMapFilterOwner(preset.owner);
+    setMapFilterTheme(preset.theme);
+  };
+
   // Non-priorities screens
   if (activeScreen === "home") return <WorkspaceHome scored={scored} decisions={decisions} signals={signals} activeWs={activeWs} onScreenChange={onScreenChange} />;
   if (activeScreen === "decisions") return <DecisionsScreen decisions={decisions} scored={scored} onAdd={onAddDecision} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} />;
   if (activeScreen === "signals") return <SignalsScreen signals={signals} scored={scored} onAdd={onAddSignal} onUpdate={onUpdateSignal} onDelete={onDeleteSignal} onImport={onImportSignals} />;
   if (activeScreen === "scenarios") return <ScenariosScreen features={features} scored={scored} sorted={sorted} activeWsId={activeWsId} isSignedIn={isSignedIn} onSelect={onSelect} isMobile={isMobile} />;
+  if (activeScreen === "settings") return <SettingsScreen activeWs={activeWs} onRenameWorkspace={onRenameWorkspace} onClear={onClear} onDeleteWorkspace={() => onDeleteWorkspace(activeWs?.id)} viewMode={viewMode} onViewModeChange={onViewModeChange} sortMode={sortMode} onSortModeChange={onSortModeChange} mapColorBy={mapColorBy} mapSizeBy={mapSizeBy} mapLabelMode={mapLabelMode} onMapColorByChange={onMapColorByChange} onMapSizeByChange={onMapSizeByChange} onMapLabelModeChange={onMapLabelModeChange} isSignedIn={isSignedIn} features={features} />;
   if (activeScreen !== "priorities") {
     const ph = PLACEHOLDER_SCREENS[activeScreen];
     if (ph) return (
@@ -91,7 +110,7 @@ export const CenterCanvas = ({
       {/* Header bar */}
       <div style={{ padding: "12px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Priorities</h2>
-        <Pill color={C.accent} dimColor={C.accentDim} small>{features.length} CANDIDATES</Pill>
+        <Pill color={C.accent} dimColor={C.accentDim} small>{listFiltersActive ? `${filteredDisplayOrder.length}/${features.length}` : features.length} CANDIDATES</Pill>
         <Pill color={C.blue} dimColor={C.blueDim} small>RICE</Pill>
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
@@ -146,11 +165,45 @@ export const CenterCanvas = ({
               <button onClick={() => onSortModeChange("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Framework Rank</button>
               <button onClick={() => { if (manualOrder.length === 0) onManualOrderChange(sorted.map(f => f.id)); onSortModeChange("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Judgment Override</button>
             </div>}
-            {displayOrder.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>No candidates yet. Add your first candidate or load examples.</p></div>
-            ) : displayOrder.map((f, i) => (
+            {scored.length > 1 && (uniqueOwners.length > 0 || uniqueThemes.length > 0 || uniqueStatuses.length > 0) && (
+              <div data-no-print style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                {uniqueOwners.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>OWNER</label>
+                    <select value={listFilterOwner} onChange={e => setListFilterOwner(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                      <option value="all">All</option>
+                      {uniqueOwners.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                )}
+                {uniqueThemes.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>THEME</label>
+                    <select value={listFilterTheme} onChange={e => setListFilterTheme(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                      <option value="all">All</option>
+                      {uniqueThemes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                )}
+                {uniqueStatuses.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>STATUS</label>
+                    <select value={listFilterStatus} onChange={e => setListFilterStatus(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                      <option value="all">All</option>
+                      {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+                {listFiltersActive && (
+                  <button onClick={() => { setListFilterOwner("all"); setListFilterTheme("all"); setListFilterStatus("all"); }} style={{ padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 9, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Clear filters</button>
+                )}
+              </div>
+            )}
+            {filteredDisplayOrder.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40 }}><p style={{ fontSize: 13, color: C.textMuted }}>{listFiltersActive ? "No candidates match the current filters" : "No candidates yet. Add your first candidate or load examples."}</p></div>
+            ) : filteredDisplayOrder.map((f, i) => (
               <div key={f.id}>
-                <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => onSelect(f.id === selectedId ? null : f.id)} onDelete={onDeleteFeature} onEdit={onEditFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={onMove} isFirst={i === 0} isLast={i === displayOrder.length - 1} signalCount={signalCounts[f.id] || 0} updatedAt={f.updated_at || f.created_at} />
+                <Card feature={f} rank={i + 1} isSelected={f.id === selectedId} onClick={() => onSelect(f.id === selectedId ? null : f.id)} onDelete={onDeleteFeature} onEdit={onEditFeature} maxScore={maxScore} draggable={sortMode === "manual" && !isMobile} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} isDragging={dragId === f.id} showMoveButtons={sortMode === "manual" && isMobile} onMove={onMove} isFirst={i === 0} isLast={i === filteredDisplayOrder.length - 1} signalCount={signalCounts[f.id] || 0} updatedAt={f.updated_at || f.created_at} />
                 {f.id === selectedId && isMobile && isSignedIn && activeWsId && (
                   <FeatureHistory wsId={activeWsId} featureId={f.id} feature={f} />
                 )}
@@ -159,7 +212,7 @@ export const CenterCanvas = ({
           </>
         ) : (
           <>
-            <MapControls colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} onColorByChange={onMapColorByChange} onSizeByChange={onMapSizeByChange} onLabelModeChange={onMapLabelModeChange} filterOwner={mapFilterOwner} filterTheme={mapFilterTheme} owners={uniqueOwners} themes={uniqueThemes} onFilterOwnerChange={setMapFilterOwner} onFilterThemeChange={setMapFilterTheme} />
+            <MapControls colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} onColorByChange={onMapColorByChange} onSizeByChange={onMapSizeByChange} onLabelModeChange={onMapLabelModeChange} filterOwner={mapFilterOwner} filterTheme={mapFilterTheme} owners={uniqueOwners} themes={uniqueThemes} onFilterOwnerChange={setMapFilterOwner} onFilterThemeChange={setMapFilterTheme} onApplyPreset={handleMapPreset} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: "16px 12px 8px", overflow: "hidden" }}>
               {filteredScored.length > 0 ? <Matrix scored={filteredScored} maxScore={maxScore} selectedId={selectedId} onSelect={onSelect} colorBy={mapColorBy} sizeBy={mapSizeBy} labelMode={mapLabelMode} /> : <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, color: C.textDim }}>{scored.length > 0 ? "No candidates match the current filters" : "Add candidates to see the tradeoff map"}</p></div>}
             </div>

@@ -27,7 +27,7 @@ const CONF_STYLES = {
   low: { color: "#f87171", label: "LOW" },
 };
 
-export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFeedback, feedbackContext }) => {
+export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFeedback, feedbackContext, onSaveDecisionDraft, onScreenChange }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -176,6 +176,33 @@ export const AIPanel = ({ scored, productContext, onAnalysisEvent, onAnalysisFee
           </button>
         </div>
       </div>
+      {onSaveDecisionDraft && (
+        <button onClick={async () => {
+          const draft = {
+            title: `Decision: ${analysis.topPick?.name || "Untitled"}`,
+            chosen_candidate_name: analysis.topPick?.name || "",
+            summary_rationale: analysis.summary || "",
+            final_rationale: analysis.topPick?.reason || "",
+            framework_used: "RICE",
+            tradeoffs_considered: `Quick win: ${analysis.quickWin?.name || "N/A"}. Risk: ${analysis.riskFlag?.name || "N/A"} — ${analysis.riskFlag?.reason || ""}`,
+            risks_accepted: analysis.riskFlag?.reason || "",
+            expected_outcome: analysis.insight || "",
+            status: "draft",
+            decision_date: new Date().toISOString().split("T")[0],
+          };
+          // Find the candidate id if possible
+          const topCandidate = scored.find(f => f.name === analysis.topPick?.name);
+          if (topCandidate) {
+            draft.chosen_candidate_id = topCandidate.id;
+          }
+          await onSaveDecisionDraft(draft);
+          if (onScreenChange) onScreenChange("decisions");
+        }} style={{ width: "100%", padding: "10px 16px", border: `1px solid ${C.accent}30`, borderRadius: 8, background: C.accentGlow, color: C.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          onMouseEnter={e => e.target.style.background = C.accentDim}
+          onMouseLeave={e => e.target.style.background = C.accentGlow}>
+          ⚖ Save as Decision Draft
+        </button>
+      )}
       <div style={{ padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
         {[
           { label: "MODE", value: mode === "live" ? "Live" : "Demo" },
