@@ -43,7 +43,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
   // Mobile: bottom tab bar
   if (isMobile) {
     return (
-      <div data-no-print style={{
+      <div data-no-print role="navigation" aria-label="Main navigation" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, height: 56,
         background: C.navBg, borderTop: `1px solid ${C.navBorder}`,
         display: "flex", alignItems: "center", justifyContent: "space-around",
@@ -51,6 +51,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
       }}>
         {NAV_ITEMS.filter(n => n.id !== "settings" && n.id !== "scenarios").map(item => (
           <button key={item.id} onClick={() => item.enabled && onScreenChange(item.id)}
+            aria-current={activeScreen === item.id ? "page" : undefined}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
               padding: "6px 12px", border: "none", background: "transparent",
@@ -68,7 +69,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
 
   // Desktop: vertical rail
   return (
-    <div data-no-print style={{
+    <div data-no-print role="navigation" aria-label="Main navigation" style={{
       width: 64, height: "calc(100vh - 48px)", position: "sticky", top: 48,
       background: C.navBg, borderRight: `1px solid ${C.navBorder}`,
       display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 0 12px",
@@ -122,6 +123,7 @@ export const LeftRail = ({ activeScreen, onScreenChange, activeWs, workspaces, o
           const isActive = activeScreen === item.id;
           return (
             <button key={item.id} onClick={() => item.enabled && onScreenChange(item.id)}
+              aria-current={isActive ? "page" : undefined}
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                 padding: "10px 0", border: "none", width: "100%",

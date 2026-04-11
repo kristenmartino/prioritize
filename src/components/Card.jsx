@@ -9,7 +9,7 @@ export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, max
   const moveBtnStyle = (disabled) => ({ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: disabled ? "transparent" : C.surface, color: disabled ? C.textDim : C.warn, fontSize: 14, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.3 : 1, lineHeight: 1 });
 
   return (
-    <div onClick={onClick} draggable={canDrag} onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart?.(feature.id); }} onDragOver={e => { e.preventDefault(); onDragOver?.(e); }} onDrop={() => onDrop?.(feature.id)} style={{ padding: 14, border: `1px solid ${isSelected ? tier.color + "50" : C.border}`, borderRadius: 10, background: isSelected ? tier.color + "08" : C.surface, cursor: canDrag ? "grab" : "pointer", transition: "all 0.2s", opacity: isDragging ? 0.4 : 1, animation: `fadeIn 0.2s ease both`, animationDelay: `${(rank - 1) * 30}ms` }}
+    <div role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }} draggable={canDrag} onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart?.(feature.id); }} onDragOver={e => { e.preventDefault(); onDragOver?.(e); }} onDrop={() => onDrop?.(feature.id)} style={{ padding: 14, border: `1px solid ${isSelected ? tier.color + "50" : C.border}`, borderRadius: 10, background: isSelected ? tier.color + "08" : C.surface, cursor: canDrag ? "grab" : "pointer", transition: "all 0.2s", opacity: isDragging ? 0.4 : 1, animation: `fadeIn 0.2s ease both`, animationDelay: `${(rank - 1) * 30}ms` }}
       onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = C.borderActive; }}
       onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = C.border; }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
@@ -43,10 +43,10 @@ export const Card = ({ feature, rank, isSelected, onClick, onDelete, onEdit, max
           <Pill color={tier.color} dimColor={tier.color + "20"}>{tier.label}</Pill>
           <span style={{ fontSize: 18, fontWeight: 800, color: tier.color, fontFamily: "'JetBrains Mono', monospace" }}>{score.toLocaleString()}</span>
           <div style={{ display: "flex", gap: 4 }}>
-            <button onClick={e => { e.stopPropagation(); onEdit(feature); }} style={{ padding: "3px 8px", border: `1px solid ${C.blue}20`, borderRadius: 6, background: "transparent", color: C.blue + "80", fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
+            <button aria-label={`Edit ${feature.name}`} onClick={e => { e.stopPropagation(); onEdit(feature); }} style={{ padding: "3px 8px", border: `1px solid ${C.blue}20`, borderRadius: 6, background: "transparent", color: C.blue + "80", fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
               onMouseEnter={e => { e.target.style.background = C.blueDim; e.target.style.color = C.blue; }}
               onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = C.blue + "80"; }}>✎ Edit</button>
-            <button onClick={e => { e.stopPropagation(); onDelete(feature.id); }} style={{ padding: "3px 8px", border: `1px solid ${C.danger}20`, borderRadius: 6, background: "transparent", color: C.danger + "80", fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
+            <button aria-label={`Remove ${feature.name}`} onClick={e => { e.stopPropagation(); onDelete(feature.id); }} style={{ padding: "3px 8px", border: `1px solid ${C.danger}20`, borderRadius: 6, background: "transparent", color: C.danger + "80", fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" }}
               onMouseEnter={e => { e.target.style.background = C.dangerDim; e.target.style.color = C.danger; }}
               onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = C.danger + "80"; }}>✕ Remove</button>
           </div>

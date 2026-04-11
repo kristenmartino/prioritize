@@ -115,7 +115,7 @@ export const CenterCanvas = ({
   const headerBtnStyle = { padding: "4px 10px", border: `1px solid ${C.border}`, borderRadius: 6, background: "transparent", color: C.textMuted, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", transition: "all 0.2s" };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+    <div role="main" id="main-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
       {/* Header bar */}
       <div style={{ padding: "12px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Priorities</h2>
@@ -125,13 +125,13 @@ export const CenterCanvas = ({
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {/* View toggle */}
           <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
-            <button onClick={() => onViewModeChange("list")} style={{
+            <button onClick={() => onViewModeChange("list")} aria-pressed={viewMode === "list"} style={{
               padding: "4px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600,
               background: viewMode === "list" ? C.surface : "transparent",
               color: viewMode === "list" ? C.accent : C.textMuted,
               cursor: "pointer", fontFamily: "'JetBrains Mono', monospace",
             }}>List</button>
-            <button onClick={() => onViewModeChange("map")} style={{
+            <button onClick={() => onViewModeChange("map")} aria-pressed={viewMode === "map"} style={{
               padding: "4px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600,
               background: viewMode === "map" ? C.surface : "transparent",
               color: viewMode === "map" ? C.accent : C.textMuted,
@@ -170,7 +170,7 @@ export const CenterCanvas = ({
             </div>
             {scored.length > 0 && (
               <div data-no-print style={{ position: "relative" }}>
-                <input ref={searchInputRef} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search candidates..." style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", outline: "none", boxSizing: "border-box" }} />
+                <input ref={searchInputRef} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} aria-label="Search candidates" placeholder="Search candidates..." style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.text, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", outline: "none", boxSizing: "border-box" }} />
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.textDim} strokeWidth="2" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 {searchQuery && <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", padding: "2px 6px", border: "none", background: "transparent", color: C.textMuted, fontSize: 12, cursor: "pointer" }}>✕</button>}
               </div>
@@ -178,15 +178,15 @@ export const CenterCanvas = ({
             {showForm && <Form key={editingFeature?.id || "new"} onAdd={onAddFeature} onCancel={() => { onShowForm(false); onEditingFeature(null); }} editFeature={editingFeature} productContext={productContext} onScoreEvent={onScoreEvent} onResolveScores={onResolveScores} feedbackContext={feedbackContext} />}
             {importData && <ImportPanel importData={importData} onConfirm={onConfirmImport} onCancel={onCancelImport} />}
             {scored.length > 1 && <div style={{ display: "flex", gap: 2, background: C.border, borderRadius: 6, padding: 2 }}>
-              <button onClick={() => onSortModeChange("rice")} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Framework Rank</button>
-              <button onClick={() => { if (manualOrder.length === 0) onManualOrderChange(sorted.map(f => f.id)); onSortModeChange("manual"); }} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Judgment Override</button>
+              <button onClick={() => onSortModeChange("rice")} aria-pressed={sortMode === "rice"} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "rice" ? C.surface : "transparent", color: sortMode === "rice" ? C.accent : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Framework Rank</button>
+              <button onClick={() => { if (manualOrder.length === 0) onManualOrderChange(sorted.map(f => f.id)); onSortModeChange("manual"); }} aria-pressed={sortMode === "manual"} style={{ flex: 1, padding: "5px 10px", borderRadius: 4, border: "none", fontSize: 10, fontWeight: 600, background: sortMode === "manual" ? C.surface : "transparent", color: sortMode === "manual" ? C.warn : C.textMuted, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>Judgment Override</button>
             </div>}
             {scored.length > 1 && (uniqueOwners.length > 0 || uniqueThemes.length > 0 || uniqueStatuses.length > 0) && (
               <div data-no-print style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 {uniqueOwners.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>OWNER</label>
-                    <select value={listFilterOwner} onChange={e => setListFilterOwner(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                    <label htmlFor="filter-owner" style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>OWNER</label>
+                    <select id="filter-owner" value={listFilterOwner} onChange={e => setListFilterOwner(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
                       <option value="all">All</option>
                       {uniqueOwners.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
@@ -194,8 +194,8 @@ export const CenterCanvas = ({
                 )}
                 {uniqueThemes.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>THEME</label>
-                    <select value={listFilterTheme} onChange={e => setListFilterTheme(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                    <label htmlFor="filter-theme" style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>THEME</label>
+                    <select id="filter-theme" value={listFilterTheme} onChange={e => setListFilterTheme(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
                       <option value="all">All</option>
                       {uniqueThemes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -203,8 +203,8 @@ export const CenterCanvas = ({
                 )}
                 {uniqueStatuses.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <label style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>STATUS</label>
-                    <select value={listFilterStatus} onChange={e => setListFilterStatus(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
+                    <label htmlFor="filter-status" style={{ fontSize: 9, fontWeight: 600, color: C.textDim, letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>STATUS</label>
+                    <select id="filter-status" value={listFilterStatus} onChange={e => setListFilterStatus(e.target.value)} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, color: C.text, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", outline: "none", cursor: "pointer" }}>
                       <option value="all">All</option>
                       {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>

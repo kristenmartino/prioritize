@@ -11,6 +11,10 @@ import { LeftRail } from "./components/LeftRail";
 import { CenterCanvas } from "./components/CenterCanvas";
 import { RightRail } from "./components/RightRail";
 import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { StatusToast } from "./components/StatusToast";
+import { OfflineBanner } from "./components/OfflineBanner";
+import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import * as feedbackLocal from "../lib/feedback-storage";
 import { computeSummaryMetrics, buildScoreCalibration, buildAnalysisContext } from "../lib/feedback-context";
 
@@ -58,6 +62,8 @@ export default function App() {
   const [decisions, setDecisions] = useState([]);
   const [signals, setSignals] = useState([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [pendingSync, setPendingSync] = useState(false);
   const fileInputRef = useRef(null);
   const searchRef = useRef(null);
   const saveTimer = useRef(null);
@@ -66,6 +72,7 @@ export default function App() {
   const loadedRef = useRef(false);
   const isMobile = useMedia("(max-width: 800px)");
   const isTablet = useMedia("(max-width: 1024px)") && !isMobile;
+  const isOnline = useOnlineStatus();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { scored, sorted, maxScore } = useScored(features);
   const displayOrder = useMemo(() => {
@@ -166,12 +173,21 @@ export default function App() {
     return () => { cancelled = true; };
   }, [authLoaded, isSignedIn]);
 
+  const showToast = useCallback((message, type = "info") => {
+    setToast({ message, type });
+  }, []);
+
   // ── Auto-save ──
   useEffect(() => {
     if (!loadedRef.current || !activeWsId) return;
     if (isSignedIn) {
       clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
+        if (!isOnline) {
+          saveWsFeatures(activeWsId, features, manualOrder);
+          setPendingSync(true);
+          return;
+        }
         try {
           const idMap = await cloud.syncFeatures(activeWsId, features, manualOrder);
           if (idMap && Object.keys(idMap).length > 0) {
@@ -180,14 +196,17 @@ export default function App() {
             if (selectedId && idMap[selectedId]) setSelectedId(idMap[selectedId]);
           }
         } catch (err) {
-          console.error("Cloud save failed:", err);
+          console.error("Cloud save failed, falling back to localStorage:", err);
+          saveWsFeatures(activeWsId, features, manualOrder);
+          setPendingSync(true);
+          showToast("Saved locally — will sync when online", "warning");
         }
       }, 1000);
       return () => clearTimeout(saveTimer.current);
     } else {
       saveWsFeatures(activeWsId, features, manualOrder);
     }
-  }, [features, manualOrder, loaded, activeWsId, isSignedIn]);
+  }, [features, manualOrder, loaded, activeWsId, isSignedIn, isOnline, showToast]);
 
   // ── Auto-save product context ──
   useEffect(() => {
@@ -195,13 +214,22 @@ export default function App() {
     if (isSignedIn) {
       clearTimeout(ctxSaveTimer.current);
       ctxSaveTimer.current = setTimeout(async () => {
-        try { await cloud.saveProductContext(activeWsId, productContext); } catch (err) { console.error("Context save failed:", err); }
+        if (!isOnline) {
+          saveWsContext(activeWsId, productContext);
+          setPendingSync(true);
+          return;
+        }
+        try { await cloud.saveProductContext(activeWsId, productContext); } catch (err) {
+          console.error("Context save failed, falling back to localStorage:", err);
+          saveWsContext(activeWsId, productContext);
+          setPendingSync(true);
+        }
       }, 1000);
       return () => clearTimeout(ctxSaveTimer.current);
     } else {
       saveWsContext(activeWsId, productContext);
     }
-  }, [productContext, loaded, activeWsId, isSignedIn]);
+  }, [productContext, loaded, activeWsId, isSignedIn, isOnline]);
 
   // ── Auto-save settings ──
   useEffect(() => {
@@ -210,13 +238,44 @@ export default function App() {
     if (isSignedIn) {
       clearTimeout(settingsSaveTimer.current);
       settingsSaveTimer.current = setTimeout(async () => {
-        try { await cloud.saveWorkspaceSettings(activeWsId, settings); } catch (err) { console.error("Settings save failed:", err); }
+        if (!isOnline) {
+          saveWsSettings(activeWsId, settings);
+          setPendingSync(true);
+          return;
+        }
+        try { await cloud.saveWorkspaceSettings(activeWsId, settings); } catch (err) {
+          console.error("Settings save failed, falling back to localStorage:", err);
+          saveWsSettings(activeWsId, settings);
+          setPendingSync(true);
+        }
       }, 500);
       return () => clearTimeout(settingsSaveTimer.current);
     } else {
       saveWsSettings(activeWsId, settings);
     }
-  }, [viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode, activeWsId, isSignedIn]);
+  }, [viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode, activeWsId, isSignedIn, isOnline]);
+
+  // ── Reconnect sync: when back online with pending changes ──
+  useEffect(() => {
+    if (!isOnline || !pendingSync || !isSignedIn || !activeWsId || !loadedRef.current) return;
+    let cancelled = false;
+    async function sync() {
+      try {
+        await cloud.syncFeatures(activeWsId, features, manualOrder);
+        await cloud.saveProductContext(activeWsId, productContext);
+        await cloud.saveWorkspaceSettings(activeWsId, { viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode });
+        if (!cancelled) {
+          setPendingSync(false);
+          showToast("Changes synced to cloud", "success");
+        }
+      } catch (err) {
+        console.error("Reconnect sync failed:", err);
+        if (!cancelled) showToast("Sync failed — will retry", "error");
+      }
+    }
+    sync();
+    return () => { cancelled = true; };
+  }, [isOnline, pendingSync, isSignedIn, activeWsId]);
 
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
   const deleteFeature = (id) => {
@@ -629,12 +688,14 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <style>{printStyles}</style>
       <style>{animStyles}</style>
+      <style>{`.skip-link { position: absolute; top: -40px; left: 0; padding: 8px 16px; background: ${C.accent}; color: ${C.bg}; font-size: 12px; font-weight: 700; z-index: 1000; text-decoration: none; border-radius: 0 0 8px 0; } .skip-link:focus { top: 0; }`}</style>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: "none" }} />
 
       {showMigration && <MigrationBanner onConfirm={handleMigration} onDismiss={() => setShowMigration(false)} />}
 
       {/* Top bar */}
-      <header style={{
+      <header role="banner" style={{
         height: 48, padding: "0 20px", borderBottom: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 50, background: C.bg,
@@ -688,6 +749,8 @@ export default function App() {
         )}
       </header>
 
+      {isSignedIn && <OfflineBanner isOnline={isOnline} isSyncing={pendingSync && isOnline} />}
+
       <div style={{
         display: isMobile ? "flex" : "grid",
         flexDirection: isMobile ? "column" : undefined,
@@ -706,6 +769,7 @@ export default function App() {
           />
         )}
 
+        <ErrorBoundary name="Content">
         <CenterCanvas
           activeScreen={activeScreen} viewMode={viewMode} onViewModeChange={setViewMode}
           features={features} scored={scored} sorted={sorted} displayOrder={displayOrder}
@@ -738,8 +802,10 @@ export default function App() {
           onScreenChange={handleScreenChange}
           searchRef={searchRef}
         />
+        </ErrorBoundary>
 
         {!isMobile && !isTablet && (
+          <ErrorBoundary name="Detail Panel">
           <RightRail
             selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
             scored={scored} maxScore={maxScore}
@@ -753,11 +819,13 @@ export default function App() {
             isMobile={false} isTablet={false}
             signals={signals} onScreenChange={handleScreenChange} onAddDecision={handleAddDecision}
           />
+          </ErrorBoundary>
         )}
       </div>
 
       {/* Tablet: right rail as overlay when candidate selected */}
       {isTablet && selectedFeature && (
+        <ErrorBoundary name="Detail Panel">
         <RightRail
           selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
           scored={scored} maxScore={maxScore}
@@ -771,10 +839,12 @@ export default function App() {
           isMobile={false} isTablet={true}
           signals={signals} onScreenChange={handleScreenChange}
         />
+        </ErrorBoundary>
       )}
 
       {/* Mobile: right rail as bottom sheet overlay when candidate selected */}
       {isMobile && selectedFeature && (
+        <ErrorBoundary name="Detail Panel">
         <RightRail
           selectedFeature={selectedFeature} onDeselect={() => setSelectedId(null)}
           scored={scored} maxScore={maxScore}
@@ -788,6 +858,7 @@ export default function App() {
           isMobile={true} isTablet={false}
           signals={signals} onScreenChange={handleScreenChange}
         />
+        </ErrorBoundary>
       )}
 
       {/* Mobile: bottom tab bar */}
@@ -802,6 +873,7 @@ export default function App() {
       )}
 
       {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
+      <StatusToast message={toast?.message} type={toast?.type} onDismiss={() => setToast(null)} />
     </div>
   );
 }
