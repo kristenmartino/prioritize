@@ -13,6 +13,11 @@ create table public.workspaces (
   constraints text default '',
   assumptions text default '',
   success_metrics text default '',
+  view_mode text not null default 'list',
+  sort_mode text not null default 'rice',
+  map_color_by text not null default 'tier',
+  map_size_by text not null default 'uniform',
+  map_label_mode text not null default 'hover',
   created_at timestamptz default now()
 );
 

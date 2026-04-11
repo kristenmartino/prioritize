@@ -102,15 +102,17 @@ export default function App() {
           try { const ctx = await cloud.fetchProductContext(activeId); if (!cancelled) setProductContext(ctx); } catch {}
           try { const d = await cloud.fetchDecisions(activeId); if (!cancelled) setDecisions(d.decisions || []); } catch { if (!cancelled) setDecisions([]); }
           try { const s = await cloud.fetchSignals(activeId); if (!cancelled) setSignals(s.signals || []); } catch { if (!cancelled) setSignals([]); }
-          // Load UI settings from localStorage (even for cloud users)
-          const settings = loadWsSettings(activeId);
-          if (!cancelled && settings) {
-            if (settings.viewMode) setViewMode(settings.viewMode);
-            if (settings.sortMode) setSortMode(settings.sortMode);
-            if (settings.mapColorBy) setMapColorBy(settings.mapColorBy);
-            if (settings.mapSizeBy) setMapSizeBy(settings.mapSizeBy);
-            if (settings.mapLabelMode) setMapLabelMode(settings.mapLabelMode);
-          }
+          // Load UI settings from cloud
+          try {
+            const settings = await cloud.fetchWorkspaceSettings(activeId);
+            if (!cancelled && settings) {
+              if (settings.viewMode) setViewMode(settings.viewMode);
+              if (settings.sortMode) setSortMode(settings.sortMode);
+              if (settings.mapColorBy) setMapColorBy(settings.mapColorBy);
+              if (settings.mapSizeBy) setMapSizeBy(settings.mapSizeBy);
+              if (settings.mapLabelMode) setMapLabelMode(settings.mapLabelMode);
+            }
+          } catch {}
           // Check if localStorage has data to migrate
           const localWs = loadWsIndex();
           if (localWs && localWs.length > 0) setShowMigration(true);
@@ -204,12 +206,17 @@ export default function App() {
   // ── Auto-save settings ──
   useEffect(() => {
     if (!loadedRef.current || !activeWsId) return;
-    clearTimeout(settingsSaveTimer.current);
-    settingsSaveTimer.current = setTimeout(() => {
-      saveWsSettings(activeWsId, { viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode });
-    }, 500);
-    return () => clearTimeout(settingsSaveTimer.current);
-  }, [viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode, activeWsId]);
+    const settings = { viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode };
+    if (isSignedIn) {
+      clearTimeout(settingsSaveTimer.current);
+      settingsSaveTimer.current = setTimeout(async () => {
+        try { await cloud.saveWorkspaceSettings(activeWsId, settings); } catch (err) { console.error("Settings save failed:", err); }
+      }, 500);
+      return () => clearTimeout(settingsSaveTimer.current);
+    } else {
+      saveWsSettings(activeWsId, settings);
+    }
+  }, [viewMode, sortMode, mapColorBy, mapSizeBy, mapLabelMode, activeWsId, isSignedIn]);
 
   const addFeature = (f) => { setFeatures(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]); setShowForm(false); setEditingFeature(null); };
   const deleteFeature = (id) => {
@@ -281,6 +288,16 @@ export default function App() {
         try { const ctx = await cloud.fetchProductContext(wsId); setProductContext(ctx); } catch { setProductContext({ productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" }); }
         try { const d = await cloud.fetchDecisions(wsId); setDecisions(d.decisions || []); } catch { setDecisions([]); }
         try { const s = await cloud.fetchSignals(wsId); setSignals(s.signals || []); } catch { setSignals([]); }
+        try {
+          const settings = await cloud.fetchWorkspaceSettings(wsId);
+          setSortMode(settings?.sortMode || "rice");
+          setViewMode(settings?.viewMode || "list");
+          setMapColorBy(settings?.mapColorBy || "tier");
+          setMapSizeBy(settings?.mapSizeBy || "uniform");
+          setMapLabelMode(settings?.mapLabelMode || "hover");
+        } catch {
+          setSortMode("rice"); setViewMode("list"); setMapColorBy("tier"); setMapSizeBy("uniform"); setMapLabelMode("hover");
+        }
       } catch (err) {
         console.error("Failed to load workspace:", err);
         setFeatures([]);
@@ -297,18 +314,18 @@ export default function App() {
       setProductContext(ctx || { productSummary: "", targetUsers: "", strategicPriorities: "", constraints: "", assumptions: "", successMetrics: "" });
       setDecisions(loadWsDecisions(wsId));
       setSignals(loadWsSignals(wsId));
+      const settings = loadWsSettings(wsId);
+      setSortMode(settings?.sortMode || "rice");
+      setViewMode(settings?.viewMode || "list");
+      setMapColorBy(settings?.mapColorBy || "tier");
+      setMapSizeBy(settings?.mapSizeBy || "uniform");
+      setMapLabelMode(settings?.mapLabelMode || "hover");
     }
     setActiveWsId(wsId);
     if (!isSignedIn) storeActiveWsId(wsId);
     setSelectedId(null);
     setShowForm(false);
     setEditingFeature(null);
-    const settings = loadWsSettings(wsId);
-    setSortMode(settings?.sortMode || "rice");
-    setViewMode(settings?.viewMode || "list");
-    setMapColorBy(settings?.mapColorBy || "tier");
-    setMapSizeBy(settings?.mapSizeBy || "uniform");
-    setMapLabelMode(settings?.mapLabelMode || "hover");
   }, [isSignedIn, loaded, activeWsId, features, manualOrder]);
 
   const addWorkspace = async () => {
